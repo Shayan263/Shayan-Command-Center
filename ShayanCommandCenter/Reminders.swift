@@ -53,6 +53,10 @@ final class ReminderStore: ObservableObject {
         await ReminderNotificationService.cancel(reminder)
     }
 
+    func reload() {
+        load()
+    }
+
     private func load() {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
               let decoded = try? JSONDecoder().decode([CoreReminder].self, from: data) else { return }
