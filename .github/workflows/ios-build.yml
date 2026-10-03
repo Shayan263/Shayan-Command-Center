@@ -131,12 +131,33 @@ jobs:
           test -d "$APP_PATH"
           test -f "$APP_PATH/Info.plist"
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist"
-          if [ -d "$APP_PATH/PlugIns/ShayanCoreWidget.appex" ]; then
-            WIDGET_PATH="$APP_PATH/PlugIns/ShayanCoreWidget.appex"
-            test -f "$WIDGET_PATH/Info.plist"
-            /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$WIDGET_PATH/Info.plist" | grep -q "com.apple.widgetkit-extension"
-            /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPrincipalClass" "$WIDGET_PATH/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP_PATH/Info.plist"
+
+          WIDGET_PATH="$APP_PATH/PlugIns/ShayanCoreWidget.appex"
+          test -d "$WIDGET_PATH"
+          test -f "$WIDGET_PATH/Info.plist"
+
+          # WidgetKit extensions use the @main WidgetBundle entry point.
+          # On current iOS releases, NSExtensionPrincipalClass / NSExtensionMainStoryboard
+          # are rejected for com.apple.widgetkit-extension.
+          /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$WIDGET_PATH/Info.plist" | grep -q "^com.apple.widgetkit-extension$"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$WIDGET_PATH/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$WIDGET_PATH/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$WIDGET_PATH/Info.plist" | grep -q "^1\.0$"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$WIDGET_PATH/Info.plist" | grep -q "^2$"
+
+          if /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPrincipalClass" "$WIDGET_PATH/Info.plist" >/dev/null 2>&1; then
+            echo "ERROR: WidgetKit extension must not contain NSExtensionPrincipalClass"
+            exit 1
           fi
+          if /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionMainStoryboard" "$WIDGET_PATH/Info.plist" >/dev/null 2>&1; then
+            echo "ERROR: WidgetKit extension must not contain NSExtensionMainStoryboard"
+            exit 1
+          fi
+
+          test -f "$WIDGET_PATH/ShayanCoreWidget"
+          file "$WIDGET_PATH/ShayanCoreWidget"
 
       - name: Upload unsigned iPhone IPA
         uses: actions/upload-artifact@v4
