@@ -176,6 +176,13 @@ private struct CommandSidebar: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 6) {
+                    SidebarSectionTitle("PROFILE")
+
+                    NavigationLink(value: CoreDestination.profile) {
+                        SidebarLabel(title: "My Profile", subtitle: "Professional identity & skills", icon: "person.crop.circle.fill")
+                    }
+                    .buttonStyle(.plain)
+
                     SidebarSectionTitle("COMMAND")
 
                     NavigationLink(value: CoreDestination.coreCommand) {
