@@ -86,7 +86,7 @@ struct HomeView: View {
                 }
             }
             .navigationDestination(for: CoreDestination.self) { destination in
-                CoreDestinationView(destination: destination, openExternal: openURL)
+                CoreDestinationView(destination: destination, openExternal: { openURL($0) })
             }
             .onOpenURL { url in
                 guard url.scheme == "shayan-core" else { return }
