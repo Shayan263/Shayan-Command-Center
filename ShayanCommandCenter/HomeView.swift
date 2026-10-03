@@ -33,6 +33,8 @@ struct HomeView: View {
                             openURL(URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
                         }
 
+                        UpcomingModulesSection()
+
                         Text("Tap ••• to open the command sidebar.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
@@ -140,6 +142,22 @@ private struct CommandSidebar: View {
                         InsightsView()
                     } label: {
                         SidebarLabel(title: "Insights", subtitle: "System & portfolio status", icon: "chart.bar.xaxis")
+                    }
+                    .buttonStyle(.plain)
+
+                    SidebarSectionTitle("UPCOMING")
+
+                    NavigationLink {
+                        ResumeBuilderPreviewView()
+                    } label: {
+                        SidebarLabel(title: "Shayan Resume Builder", subtitle: "Build & tailor resumes", icon: "doc.text.magnifyingglass")
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        LearningHubPreviewView()
+                    } label: {
+                        SidebarLabel(title: "Shayan Learning Hub", subtitle: "Learn, track & grow", icon: "graduationcap.fill")
                     }
                     .buttonStyle(.plain)
 
@@ -376,5 +394,51 @@ struct StatusPill: View {
         .background((isOnline ? Color.green : Color.red).opacity(0.10))
         .foregroundStyle(isOnline ? .green : .red)
         .clipShape(Capsule())
+    }
+}
+
+    
+private struct UpcomingModulesSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("COMING TO SHAYAN CORE").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(.secondary)
+                Spacer()
+                Text("2 MODULES").font(.caption2.weight(.bold)).foregroundStyle(.blue)
+            }
+            NavigationLink { ResumeBuilderPreviewView() } label: {
+                UpcomingModuleCard(title: "Shayan Resume Builder", subtitle: "Build, tailor & manage your professional resume", icon: "doc.text.magnifyingglass")
+            }.buttonStyle(.plain)
+            NavigationLink { LearningHubPreviewView() } label: {
+                UpcomingModuleCard(title: "Shayan Learning Hub", subtitle: "Your space for SAP, cloud & continuous learning", icon: "graduationcap.fill")
+            }.buttonStyle(.plain)
+        }
+    }
+}
+
+private struct UpcomingModuleCard: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    var body: some View {
+        HStack(spacing: 15) {
+            Image(systemName: icon).font(.title3.weight(.semibold)).foregroundStyle(.blue)
+                .frame(width: 48, height: 48).background(.blue.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 7) {
+                    Text(title).font(.headline)
+                    Text("SOON").font(.system(size: 8, weight: .bold)).tracking(0.7)
+                        .padding(.horizontal, 7).padding(.vertical, 4)
+                        .background(.blue.opacity(0.12)).foregroundStyle(.blue).clipShape(Capsule())
+                }
+                Text(subtitle).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+        }
+        .padding(16).background(.white.opacity(0.045))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.07), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
