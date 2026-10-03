@@ -10,6 +10,7 @@
 		A00000000000000000000002 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* HomeView.swift */; };
 		A00000000000000000000003 /* DashboardStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* DashboardStatus.swift */; };
 		A00000000000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* Assets.xcassets */; };
+		A00000000000000000000005 /* AppMenuViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* AppMenuViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,7 @@
 		A00000000000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A00000000000000000000016 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		A00000000000000000000017 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		A00000000000000000000018 /* AppMenuViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMenuViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,6 +50,7 @@
 				A00000000000000000000011 /* ShayanCommandCenterApp.swift */,
 				A00000000000000000000012 /* HomeView.swift */,
 				A00000000000000000000013 /* DashboardStatus.swift */,
+				A00000000000000000000018 /* AppMenuViews.swift */,
 				A00000000000000000000014 /* Assets.xcassets */,
 				A00000000000000000000015 /* Info.plist */,
 			);
@@ -134,6 +137,7 @@
 				A00000000000000000000001 /* ShayanCommandCenterApp.swift in Sources */,
 				A00000000000000000000002 /* HomeView.swift in Sources */,
 				A00000000000000000000003 /* DashboardStatus.swift in Sources */,
+				A00000000000000000000005 /* AppMenuViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
