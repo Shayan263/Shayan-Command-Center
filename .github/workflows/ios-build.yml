@@ -1,4 +1,5 @@
 name: iOS Build
+# Latest full sanity trigger: 2026-10-03T21:42:17.346Z
 # CI sanity verification trigger
 
 concurrency:
