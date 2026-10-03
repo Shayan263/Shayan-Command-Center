@@ -30,10 +30,11 @@ struct HomeView: View {
                             openURL(URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
                         }
 
-                        Text("More capabilities coming soon")
+                        Text("Use ••• for links, actions, insights, notes and settings.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
                     }
                     .padding(20)
                 }
@@ -59,6 +60,12 @@ struct HomeView: View {
                             InsightsView()
                         } label: {
                             Label("Insights", systemImage: "chart.bar.xaxis")
+                        }
+
+                        NavigationLink {
+                            PlainTextView()
+                        } label: {
+                            Label("Plain Text", systemImage: "note.text")
                         }
 
                         Divider()
@@ -140,7 +147,6 @@ struct DashboardCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
-
 
 struct WebsiteCard: View {
     let onOpen: () -> Void
