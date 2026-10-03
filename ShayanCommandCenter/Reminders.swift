@@ -20,8 +20,6 @@ struct CoreReminder: Identifiable, Codable, Hashable {
 final class ReminderStore: ObservableObject {
     @Published private(set) var reminders: [CoreReminder] = []
 
-    private let storageKey = "core.reminders.v1"
-
     init() {
         load()
     }
@@ -58,14 +56,11 @@ final class ReminderStore: ObservableObject {
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let decoded = try? JSONDecoder().decode([CoreReminder].self, from: data) else { return }
-        reminders = decoded.sorted { $0.date < $1.date }
+        reminders = CoreReminderStorage.load()
     }
 
     private func persist() {
-        guard let data = try? JSONEncoder().encode(reminders) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+        CoreReminderStorage.save(reminders)
     }
 }
 
