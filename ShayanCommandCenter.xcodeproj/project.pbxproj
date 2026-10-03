@@ -134,7 +134,6 @@
 				B00000000000000000000091 /* ShayanCoreWidget dependency */,
 			);
 			buildRules = ();
-			dependencies = ();
 			name = ShayanCommandCenter;
 			productName = ShayanCommandCenter;
 			productReference = A00000000000000000000010 /* ShayanCommandCenter.app */;
