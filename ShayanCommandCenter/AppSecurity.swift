@@ -47,6 +47,24 @@ enum AppSecurity {
 }
 
 enum SecureNotesStore {
+    static func loadAsync() async -> String {
+        await Task.detached(priority: .utility) {
+            load()
+        }.value
+    }
+
+    static func saveAsync(_ text: String) async throws {
+        try await Task.detached(priority: .utility) {
+            try save(text)
+        }.value
+    }
+
+    static func deleteAsync() async throws {
+        try await Task.detached(priority: .utility) {
+            try delete()
+        }.value
+    }
+
     private static let service = "com.shayan.commandcentre.secure-notes"
     private static let account = "plain-text-notes"
 
