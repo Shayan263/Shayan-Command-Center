@@ -1,4 +1,5 @@
 name: iOS Build
+# CI sanity verification trigger
 
 concurrency:
   group: shayan-core-ios-${{ github.ref }}
