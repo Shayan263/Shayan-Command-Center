@@ -49,7 +49,7 @@ struct ShayanCoreWidgetProvider: TimelineProvider {
 
 struct ShayanCoreWidgetView: View {
     let entry: ShayanCoreWidgetEntry
-    @Environment(.widgetFamily) private var family
+    @Environment(\.widgetFamily) private var family: WidgetFamily
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -103,7 +103,7 @@ struct ShayanCoreWidgetView: View {
 
             if family == .systemMedium {
                 HStack {
-                    Text("(entry.todayCount) today")
+                    Text("\(entry.todayCount) today")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Spacer()
