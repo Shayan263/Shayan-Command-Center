@@ -18,6 +18,7 @@
 		A0000000000000000000000A /* CoreReminderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001D /* CoreReminderModel.swift */; };
 		B00000000000000000000001 /* ShayanCoreWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* ShayanCoreWidget.swift */; };
 		B00000000000000000000002 /* ShayanCoreWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */; };
+		B00000000000000000000004 /* CoreWidgetActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* CoreWidgetActions.swift */; };
 		B00000000000000000000003 /* ShayanCoreWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* ShayanCoreWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,8 @@
 		B00000000000000000000011 /* ShayanCoreWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidget.swift; sourceTree = "<group>"; };
 		B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidgetBundle.swift; sourceTree = "<group>"; };
 		B00000000000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B00000000000000000000014 /* CoreWidgetActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreWidgetActions.swift; sourceTree = "<group>"; };
+		B00000000000000000000015 /* ShayanCoreWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShayanCoreWidget.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,7 +84,9 @@
 			children = (
 				B00000000000000000000011 /* ShayanCoreWidget.swift */,
 				B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */,
+				B00000000000000000000014 /* CoreWidgetActions.swift */,
 				B00000000000000000000013 /* Info.plist */,
+				B00000000000000000000015 /* ShayanCoreWidget.entitlements */,
 			);
 			path = ShayanCommandCenterWidget;
 			sourceTree = "<group>";
@@ -240,6 +245,7 @@
 			files = (
 				B00000000000000000000001 /* ShayanCoreWidget.swift in Sources */,
 				B00000000000000000000002 /* ShayanCoreWidgetBundle.swift in Sources */,
+				B00000000000000000000004 /* CoreWidgetActions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
