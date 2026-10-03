@@ -3,7 +3,6 @@ import UIKit
 
 struct ImportantLinksView: View {
     let openExternal: (URL) -> Void
-
     private let links: [(String, String, String, String)] = [
         ("My Website", "Public portfolio & profile", "globe", "https://shayan263.github.io/Shayan_Profile/"),
         ("Admin Dashboard", "Private portfolio analytics", "chart.xyaxis.line", "https://shayan263.github.io/Shayan_Profile/admin.html"),
@@ -24,9 +23,7 @@ struct ImportantLinksView: View {
                                 Text(link.0).font(.body.weight(.semibold))
                                 Text(link.1).font(.caption).foregroundStyle(.secondary)
                             }
-                        } icon: {
-                            Image(systemName: link.2).frame(width: 24)
-                        }
+                        } icon: { Image(systemName: link.2).frame(width: 24) }
                     }
                     .buttonStyle(.plain)
                 }
@@ -49,15 +46,14 @@ struct QuickActionsView: View {
                 QuickActionRow(title: "GitHub", subtitle: "Open your repositories", icon: "chevron.left.forwardslash.chevron.right", url: URL(string: "https://github.com/Shayan263")!)
                 QuickActionRow(title: "LinkedIn", subtitle: "Open your professional profile", icon: "person.crop.circle", url: URL(string: "https://www.linkedin.com/")!)
             }
-
             Section("Share & Copy") {
                 Button {
                     UIPasteboard.general.string = portfolioURL.absoluteString
                     copied = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     Label(copied ? "Portfolio URL Copied" : "Copy Portfolio URL", systemImage: copied ? "checkmark" : "doc.on.doc")
                 }
-
                 ShareLink(item: portfolioURL) {
                     Label("Share Portfolio", systemImage: "square.and.arrow.up")
                 }
@@ -85,9 +81,7 @@ private struct QuickActionRow: View {
                     Text(title).font(.body.weight(.semibold))
                     Text(subtitle).font(.caption).foregroundStyle(.secondary)
                 }
-            } icon: {
-                Image(systemName: icon).frame(width: 24)
-            }
+            } icon: { Image(systemName: icon).frame(width: 24) }
         }
         .buttonStyle(.plain)
     }
@@ -98,30 +92,26 @@ struct InsightsView: View {
 
     var body: some View {
         List {
-            Section("Live Status") {
+            Section("System Status") {
                 HStack {
                     Label("Portfolio Dashboard", systemImage: "chart.xyaxis.line")
                     Spacer()
                     StatusPill(isOnline: status.isOnline)
                 }
-
                 HStack {
                     Text("Last checked")
                     Spacer()
                     Text(status.lastCheckedText).foregroundStyle(.secondary)
                 }
             }
-
             Section("Portfolio") {
                 InsightRow(title: "Public website", value: "Available", icon: "globe")
                 InsightRow(title: "Professional profile", value: "LinkedIn", icon: "person.crop.circle")
                 InsightRow(title: "Code & projects", value: "GitHub", icon: "chevron.left.forwardslash.chevron.right")
             }
-
             Section("Next") {
                 Text("GitHub activity, project metrics and deeper portfolio insights can be added here without changing Home.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(.secondary)
             }
         }
         .navigationTitle("Insights")
@@ -135,7 +125,6 @@ private struct InsightRow: View {
     let title: String
     let value: String
     let icon: String
-
     var body: some View {
         HStack {
             Label(title, systemImage: icon)
@@ -154,29 +143,23 @@ struct SettingsView: View {
             Section("Appearance") {
                 Toggle(isOn: $darkModeEnabled) {
                     Label("Dark interface", systemImage: "moon.fill")
-                }
-                .disabled(true)
-
-                Text("The Command Centre currently uses its dark visual system. Theme selection can be expanded later.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                }.disabled(true)
+                Text("Shayan Core currently uses its dark visual system. Theme selection can be expanded later.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
-
             Section("Security") {
                 Toggle(isOn: $appLockEnabled) {
                     Label("Require Face ID / passcode", systemImage: "faceid")
                 }
-
-                Text("Uses iOS Local Authentication. The app never receives your biometric data.")
-                    .font(.footnote)
+                Label("Secure notes use Keychain storage", systemImage: "lock.shield")
                     .foregroundStyle(.secondary)
+                Text("App authentication uses iOS Local Authentication. Sensitive notes are stored in the Keychain rather than UserDefaults.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
-
             Section("Privacy & Network") {
                 Label("HTTPS-only external links", systemImage: "lock.shield")
-                Label("No credentials stored in the app", systemImage: "checkmark.shield")
+                Label("No passwords, tokens or credentials hard-coded", systemImage: "checkmark.shield")
             }
-
             Section("About") {
                 HStack {
                     Text("Version")
@@ -184,15 +167,13 @@ struct SettingsView: View {
                     Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")
                         .foregroundStyle(.secondary)
                 }
-
                 HStack {
                     Text("Build")
                     Spacer()
                     Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1")
                         .foregroundStyle(.secondary)
                 }
-
-                Text("Shayan Command Centre").foregroundStyle(.secondary)
+                Text("Shayan Core").foregroundStyle(.secondary)
             }
         }
         .navigationTitle("Settings")
@@ -201,14 +182,15 @@ struct SettingsView: View {
 }
 
 struct PlainTextView: View {
-    @AppStorage("plainTextNotes") private var text = ""
+    @State private var text = ""
     @State private var showClearConfirmation = false
+    @State private var showSaveError = false
 
     var body: some View {
         TextEditor(text: $text)
             .font(.body.monospaced())
             .padding(.horizontal, 8)
-            .navigationTitle("Plain Text")
+            .navigationTitle("Protected Notes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -216,18 +198,33 @@ struct PlainTextView: View {
                         Image(systemName: "square.and.arrow.up")
                     }
                     .accessibilityLabel("Share note")
-
-                    Button("Clear") {
-                        showClearConfirmation = true
-                    }
-                    .disabled(text.isEmpty)
+                    Button("Clear") { showClearConfirmation = true }
+                        .disabled(text.isEmpty)
                 }
             }
+            .task {
+                text = SecureNotesStore.load()
+            }
+            .onChange(of: text) { _, newValue in
+                do {
+                    try SecureNotesStore.save(newValue)
+                } catch {
+                    showSaveError = true
+                }
+            }
+            .alert("Could not save note", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("The secure note could not be written to the iPhone Keychain.")
+            }
             .confirmationDialog("Clear this note?", isPresented: $showClearConfirmation) {
-                Button("Clear", role: .destructive) { text = "" }
+                Button("Clear", role: .destructive) {
+                    text = ""
+                    try? SecureNotesStore.delete()
+                }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will remove the saved note from this device.")
+                Text("This will remove the protected note from this device.")
             }
     }
 }
@@ -239,35 +236,19 @@ struct AppLockView: View {
     var body: some View {
         ZStack {
             Color(red: 0.025, green: 0.035, blue: 0.07).ignoresSafeArea()
-
             VStack(spacing: 22) {
-                Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 54))
-                    .foregroundStyle(.blue)
-
-                Text("Command Centre Locked")
-                    .font(.title.bold())
-
-                Text("Authenticate to continue.")
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    Task { await authenticate() }
-                } label: {
+                Image(systemName: "lock.shield.fill").font(.system(size: 54)).foregroundStyle(.blue)
+                Text("Shayan Core Locked").font(.title.bold())
+                Text("Authenticate to continue.").foregroundStyle(.secondary)
+                Button { Task { await authenticate() } } label: {
                     Label("Unlock", systemImage: "faceid")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.horizontal, 30)
-
                 if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
+                    Text(errorMessage).font(.footnote).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center).padding(.horizontal, 24)
                 }
             }
             .padding(24)
