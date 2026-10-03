@@ -302,6 +302,7 @@
 		B00000000000000000000080 /* Widget Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShayanCommandCenterWidget/ShayanCoreWidget.entitlements;
 				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShayanCommandCenterWidget/Info.plist;
@@ -318,6 +319,7 @@
 		B00000000000000000000081 /* Widget Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShayanCommandCenterWidget/ShayanCoreWidget.entitlements;
 				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShayanCommandCenterWidget/Info.plist;
