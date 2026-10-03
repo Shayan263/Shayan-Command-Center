@@ -185,6 +185,7 @@ struct PlainTextView: View {
     @State private var text = ""
     @State private var showClearConfirmation = false
     @State private var showSaveError = false
+    @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
         TextEditor(text: $text)
@@ -203,13 +204,26 @@ struct PlainTextView: View {
                 }
             }
             .task {
-                text = SecureNotesStore.load()
+                text = await SecureNotesStore.loadAsync()
             }
             .onChange(of: text) { _, newValue in
-                do {
-                    try SecureNotesStore.save(newValue)
-                } catch {
-                    showSaveError = true
+                saveTask?.cancel()
+                saveTask = Task {
+                    do {
+                        try await Task.sleep(for: .milliseconds(350))
+                        try await SecureNotesStore.saveAsync(newValue)
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        showSaveError = true
+                    }
+                }
+            }
+            .onDisappear {
+                saveTask?.cancel()
+                let finalText = text
+                Task {
+                    try? await SecureNotesStore.saveAsync(finalText)
                 }
             }
             .alert("Could not save note", isPresented: $showSaveError) {
@@ -220,7 +234,8 @@ struct PlainTextView: View {
             .confirmationDialog("Clear this note?", isPresented: $showClearConfirmation) {
                 Button("Clear", role: .destructive) {
                     text = ""
-                    try? SecureNotesStore.delete()
+                    saveTask?.cancel()
+                    Task { try? await SecureNotesStore.deleteAsync() }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
