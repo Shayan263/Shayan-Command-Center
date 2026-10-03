@@ -1,10 +1,8 @@
-import UIKit
 import SwiftUI
 
 struct HomeView: View {
     @StateObject private var status = DashboardStatus()
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
-    private let websiteURL = URL(string: "https://shayan263.github.io/Shayan_Profile/")!
 
     var body: some View {
         NavigationStack {
@@ -28,7 +26,7 @@ struct HomeView: View {
                         }
 
                         WebsiteCard {
-                            UIApplication.shared.open(websiteURL)
+                            UIApplication.shared.open(URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
                         }
 
                         Text("More capabilities coming soon")
@@ -39,7 +37,44 @@ struct HomeView: View {
                     .padding(20)
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        NavigationLink {
+                            ImportantLinksView(openExternal: { url in
+                                UIApplication.shared.open(url)
+                            })
+                        } label: {
+                            Label("Important Links", systemImage: "link")
+                        }
+
+                        NavigationLink {
+                            QuickActionsView()
+                        } label: {
+                            Label("Quick Actions", systemImage: "bolt.fill")
+                        }
+
+                        NavigationLink {
+                            InsightsView()
+                        } label: {
+                            Label("Insights", systemImage: "chart.bar.xaxis")
+                        }
+
+                        Divider()
+
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Label("Settings", systemImage: "gearshape")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.title3.weight(.semibold))
+                            .frame(minWidth: 36, minHeight: 36)
+                    }
+                    .accessibilityLabel("More options")
+                }
+            }
             .task { await status.check() }
             .refreshable { await status.check() }
         }
