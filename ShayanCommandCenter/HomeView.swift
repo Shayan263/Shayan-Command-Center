@@ -122,16 +122,6 @@ private struct CommandSidebar: View {
                 VStack(alignment: .leading, spacing: 6) {
                     SidebarSectionTitle("COMMAND")
 
-                    SidebarNavigationRow(title: "Important Links", subtitle: "Website, LinkedIn & GitHub", icon: "link") {
-                        NavigationLink {
-                            ImportantLinksView(openExternal: openExternal)
-                        } label: {
-                            EmptyView()
-                        }
-                        .opacity(0)
-                        .frame(width: 0, height: 0)
-                    }
-
                     NavigationLink {
                         ImportantLinksView(openExternal: openExternal)
                     } label: {
@@ -250,24 +240,6 @@ private struct SidebarLabel: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
         .contentShape(Rectangle())
-    }
-}
-
-private struct SidebarNavigationRow<Destination: View>: View {
-    let title: String
-    let subtitle: String
-    let icon: String
-    let destination: () -> Destination
-
-    init(title: String, subtitle: String, icon: String, @ViewBuilder destination: @escaping () -> Destination) {
-        self.title = title
-        self.subtitle = subtitle
-        self.icon = icon
-        self.destination = destination
-    }
-
-    var body: some View {
-        EmptyView()
     }
 }
 
