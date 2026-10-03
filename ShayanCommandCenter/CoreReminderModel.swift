@@ -1,17 +1,10 @@
 import Foundation
 
-struct CoreReminder: Identifiable, Codable, Hashable {
+struct SharedReminderRecord: Identifiable, Codable, Hashable {
     let id: UUID
     var title: String
     var date: Date
     var isCompleted: Bool
-
-    init(id: UUID = UUID(), title: String, date: Date, isCompleted: Bool = false) {
-        self.id = id
-        self.title = title
-        self.date = date
-        self.isCompleted = isCompleted
-    }
 }
 
 enum CoreReminderStorage {
@@ -22,16 +15,13 @@ enum CoreReminderStorage {
         UserDefaults(suiteName: suiteName) ?? .standard
     }
 
-    static func load() -> [CoreReminder] {
-        guard let data = defaults.data(forKey: storageKey),
-              let decoded = try? JSONDecoder().decode([CoreReminder].self, from: data) else {
-            return []
-        }
-        return decoded.sorted { $0.date < $1.date }
+    static func load<T: Decodable>(_ type: T.Type = T.self) -> T? {
+        guard let data = defaults.data(forKey: storageKey) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
     }
 
-    static func save(_ reminders: [CoreReminder]) {
-        guard let data = try? JSONEncoder().encode(reminders) else { return }
+    static func save<T: Encodable>(_ value: T) {
+        guard let data = try? JSONEncoder().encode(value) else { return }
         defaults.set(data, forKey: storageKey)
     }
 }
