@@ -4,6 +4,7 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var status = DashboardStatus()
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
+    private let websiteURL = URL(string: "https://shayan263.github.io/Shayan_Profile/")!
 
     var body: some View {
         NavigationStack {
@@ -24,6 +25,10 @@ struct HomeView: View {
 
                         DashboardCard(status: status) {
                             UIApplication.shared.open(dashboardURL)
+                        }
+
+                        WebsiteCard {
+                            UIApplication.shared.open(websiteURL)
                         }
 
                         Text("More capabilities coming soon")
@@ -82,6 +87,51 @@ struct DashboardCard: View {
             Button(action: onDetails) {
                 HStack {
                     Text("View Details").fontWeight(.semibold)
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                }
+                .padding(.horizontal, 16).padding(.vertical, 13)
+                .background(LinearGradient(colors: [.blue, .purple],
+                                           startPoint: .leading, endPoint: .trailing))
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 13))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(20)
+        .background(.white.opacity(0.055))
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.09), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+
+struct WebsiteCard: View {
+    let onOpen: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Image(systemName: "globe")
+                    .font(.title2).foregroundStyle(.blue)
+                    .frame(width: 44, height: 44)
+                    .background(.blue.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 13))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("My Website").font(.headline)
+                    Text("Public portfolio & profile").font(.caption).foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+
+            Text("Open your public website and portfolio.")
+                .font(.title3.bold())
+
+            Button(action: onOpen) {
+                HStack {
+                    Text("Visit Website").fontWeight(.semibold)
                     Spacer()
                     Image(systemName: "arrow.up.right")
                 }
