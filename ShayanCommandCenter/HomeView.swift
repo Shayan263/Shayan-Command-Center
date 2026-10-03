@@ -3,11 +3,12 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @StateObject private var status = DashboardStatus()
+    @State private var showSideMenu = false
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            ZStack(alignment: .leading) {
                 Color(red: 0.025, green: 0.035, blue: 0.07).ignoresSafeArea()
 
                 ScrollView {
@@ -32,7 +33,7 @@ struct HomeView: View {
                             openURL(URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
                         }
 
-                        Text("Use ••• for links, actions, insights, notes and settings.")
+                        Text("Tap ••• to open the command sidebar.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
@@ -40,39 +41,233 @@ struct HomeView: View {
                     }
                     .padding(20)
                 }
+
+                if showSideMenu {
+                    Color.black.opacity(0.48)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.22)) {
+                                showSideMenu = false
+                            }
+                        }
+
+                    CommandSidebar(isPresented: $showSideMenu, openExternal: { url in
+                        openURL(url)
+                    })
+                    .frame(width: 292)
+                    .transition(.move(edge: .leading))
+                    .zIndex(2)
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Menu {
-                        NavigationLink {
-                            ImportantLinksView(openExternal: { url in openURL(url) })
-                        } label: {
-                            Label("Important Links", systemImage: "link")
-                        }
-                        NavigationLink { QuickActionsView() } label: {
-                            Label("Quick Actions", systemImage: "bolt.fill")
-                        }
-                        NavigationLink { InsightsView() } label: {
-                            Label("Insights", systemImage: "chart.bar.xaxis")
-                        }
-                        NavigationLink { PlainTextView() } label: {
-                            Label("Protected Notes", systemImage: "lock.text")
-                        }
-                        Divider()
-                        NavigationLink { SettingsView() } label: {
-                            Label("Settings", systemImage: "gearshape")
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            showSideMenu.toggle()
                         }
                     } label: {
-                        Image(systemName: "ellipsis")
+                        Image(systemName: showSideMenu ? "xmark" : "ellipsis")
                             .font(.title3.weight(.semibold))
                             .frame(minWidth: 36, minHeight: 36)
                     }
-                    .accessibilityLabel("More options")
+                    .accessibilityLabel(showSideMenu ? "Close command sidebar" : "Open command sidebar")
                 }
             }
             .task { await status.check() }
             .refreshable { await status.check() }
         }
+    }
+}
+
+private struct CommandSidebar: View {
+    @Binding var isPresented: Bool
+    let openExternal: (URL) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("SHAYAN CORE")
+                            .font(.caption.weight(.bold))
+                            .tracking(1.4)
+                            .foregroundStyle(.blue)
+                        Text("Command Center")
+                            .font(.title2.bold())
+                    }
+
+                    Spacer()
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            isPresented = false
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption.weight(.bold))
+                            .frame(width: 32, height: 32)
+                            .background(.white.opacity(0.07))
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel("Close sidebar")
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 18)
+
+            Divider().opacity(0.25)
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 6) {
+                    SidebarSectionTitle("COMMAND")
+
+                    SidebarNavigationRow(title: "Important Links", subtitle: "Website, LinkedIn & GitHub", icon: "link") {
+                        NavigationLink {
+                            ImportantLinksView(openExternal: openExternal)
+                        } label: {
+                            EmptyView()
+                        }
+                        .opacity(0)
+                        .frame(width: 0, height: 0)
+                    }
+
+                    NavigationLink {
+                        ImportantLinksView(openExternal: openExternal)
+                    } label: {
+                        SidebarLabel(title: "Important Links", subtitle: "Website, LinkedIn & GitHub", icon: "link")
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        QuickActionsView()
+                    } label: {
+                        SidebarLabel(title: "Quick Actions", subtitle: "Open, copy & share", icon: "bolt.fill")
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        InsightsView()
+                    } label: {
+                        SidebarLabel(title: "Insights", subtitle: "System & portfolio status", icon: "chart.bar.xaxis")
+                    }
+                    .buttonStyle(.plain)
+
+                    SidebarSectionTitle("PERSONAL")
+
+                    NavigationLink {
+                        PlainTextView()
+                    } label: {
+                        SidebarLabel(title: "Protected Notes", subtitle: "Secure Keychain notes", icon: "lock.text")
+                    }
+                    .buttonStyle(.plain)
+
+                    SidebarSectionTitle("APP")
+
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        SidebarLabel(title: "Settings", subtitle: "Security & preferences", icon: "gearshape")
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 18)
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("SHAYAN CORE")
+                    .font(.caption2.weight(.bold))
+                    .tracking(1.1)
+                    .foregroundStyle(.secondary)
+                Text("Your personal digital core")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(20)
+        }
+        .frame(maxHeight: .infinity)
+        .background(Color(red: 0.035, green: 0.045, blue: 0.085))
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(.white.opacity(0.08))
+                .frame(width: 1)
+        }
+        .ignoresSafeArea(edges: .vertical)
+        .shadow(color: .black.opacity(0.35), radius: 24, x: 10, y: 0)
+    }
+}
+
+private struct SidebarSectionTitle: View {
+    let title: String
+
+    init(_ title: String) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.caption2.weight(.bold))
+            .tracking(1.2)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 12)
+            .padding(.top, 14)
+            .padding(.bottom, 5)
+    }
+}
+
+private struct SidebarLabel: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 13) {
+            Image(systemName: icon)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.blue)
+                .frame(width: 38, height: 38)
+                .background(.blue.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 11))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct SidebarNavigationRow<Destination: View>: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let destination: () -> Destination
+
+    init(title: String, subtitle: String, icon: String, @ViewBuilder destination: @escaping () -> Destination) {
+        self.title = title
+        self.subtitle = subtitle
+        self.icon = icon
+        self.destination = destination
+    }
+
+    var body: some View {
+        EmptyView()
     }
 }
 
