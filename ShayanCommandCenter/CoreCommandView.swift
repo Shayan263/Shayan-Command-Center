@@ -46,7 +46,7 @@ struct CoreCommandView: View {
                     }
                 }
             } header: {
-                Text(query.isEmpty ? "COMMANDS" : "(results.count) RESULTS")
+                Text(query.isEmpty ? "COMMANDS" : "\(results.count) RESULTS")
             } footer: {
                 Text("Search is local and lightweight. Shayan Core only filters the available command catalog; it does not scan your private data.")
             }
