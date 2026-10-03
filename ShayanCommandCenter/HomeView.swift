@@ -348,6 +348,10 @@ struct DashboardCard: View {
                     Circle().fill(status.isOnline ? Color.green : Color.red).frame(width: 8, height: 8)
                     Text(status.isOnline ? "Online" : "Offline").font(.subheadline.weight(.semibold))
                     Text("•").foregroundStyle(.secondary)
+                    if let responseTimeMs = status.responseTimeMs {
+                        Text("\(responseTimeMs) ms").font(.caption).foregroundStyle(.secondary)
+                        Text("•").foregroundStyle(.secondary)
+                    }
                     Text(status.lastCheckedText).font(.caption).foregroundStyle(.secondary)
                 }
             }
