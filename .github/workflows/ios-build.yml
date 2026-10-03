@@ -9,7 +9,36 @@ jobs:
   build:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Validate project
+        run: |
+          xcodebuild -list -project ShayanCommandCenter.xcodeproj
+
       - name: Build Command Centre
         run: |
-          xcodebuild -project ShayanCommandCenter.xcodeproj -scheme ShayanCommandCenter -sdk iphonesimulator -configuration Release -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+          set -o pipefail
+          xcodebuild \
+            -project ShayanCommandCenter.xcodeproj \
+            -scheme ShayanCommandCenter \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Package simulator app
+        run: |
+          mkdir -p artifacts
+          cp -R "$HOME/Library/Developer/Xcode/DerivedData"/ShayanCommandCenter-*/Build/Products/Release-iphonesimulator/ShayanCommandCenter.app artifacts/
+          ditto -c -k --sequesterRsrc --keepParent artifacts/ShayanCommandCenter.app artifacts/ShayanCommandCenter-Simulator.zip
+
+      - name: Upload simulator build
+        uses: actions/upload-artifact@v4
+        with:
+          name: shayan-command-centre-simulator
+          path: artifacts/ShayanCommandCenter-Simulator.zip
