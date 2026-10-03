@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-15
@@ -12,30 +15,56 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Select Xcode
+        run: |
+          if [ -d "/Applications/Xcode_16.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          fi
+          xcodebuild -version
+          xcode-select -p
 
-      - name: Validate project
+      - name: Validate project structure
+        run: |
+          test -d ShayanCommandCenter.xcodeproj
+          test -f ShayanCommandCenter.xcodeproj/project.pbxproj
+          test -f ShayanCommandCenter/Info.plist
+          test -f ShayanCommandCenter/ShayanCommandCenterApp.swift
+          test -f ShayanCommandCenter/HomeView.swift
+          test -f ShayanCommandCenter/DashboardStatus.swift
+          test -f Configuration/Debug.xcconfig
+          test -f Configuration/Release.xcconfig
+          test -f ShayanCommandCenter.xcodeproj/xcshareddata/xcschemes/ShayanCommandCenter.xcscheme
+
+      - name: List Xcode project
         run: |
           xcodebuild -list -project ShayanCommandCenter.xcodeproj
 
+      - name: Show effective Release settings
+        run: |
+          xcodebuild             -project ShayanCommandCenter.xcodeproj             -scheme ShayanCommandCenter             -configuration Release             -sdk iphonesimulator             -showBuildSettings             | tee build-settings.txt
+          grep -E '^( *PRODUCT_BUNDLE_IDENTIFIER| *INFOPLIST_FILE| *GENERATE_INFOPLIST_FILE| *SWIFT_VERSION| *IPHONEOS_DEPLOYMENT_TARGET| *TARGETED_DEVICE_FAMILY| *CONFIGURATION_BUILD_DIR) =' build-settings.txt
+
       - name: Build Command Centre
         run: |
-          set -o pipefail
-          xcodebuild \
-            -project ShayanCommandCenter.xcodeproj \
-            -scheme ShayanCommandCenter \
-            -sdk iphonesimulator \
-            -configuration Release \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            clean build
+          set -euo pipefail
+          rm -rf build
+          xcodebuild             -project ShayanCommandCenter.xcodeproj             -scheme ShayanCommandCenter             -configuration Release             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             -derivedDataPath build/DerivedData             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             clean build
+
+      - name: Verify app bundle
+        run: |
+          set -euo pipefail
+          APP="build/DerivedData/Build/Products/Release-iphonesimulator/ShayanCommandCenter.app"
+          test -d "$APP"
+          test -f "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
+          file "$APP/ShayanCommandCenter"
 
       - name: Package simulator app
         run: |
+          set -euo pipefail
           mkdir -p artifacts
-          cp -R "$HOME/Library/Developer/Xcode/DerivedData"/ShayanCommandCenter-*/Build/Products/Release-iphonesimulator/ShayanCommandCenter.app artifacts/
-          ditto -c -k --sequesterRsrc --keepParent artifacts/ShayanCommandCenter.app artifacts/ShayanCommandCenter-Simulator.zip
+          ditto -c -k --sequesterRsrc --keepParent             build/DerivedData/Build/Products/Release-iphonesimulator/ShayanCommandCenter.app             artifacts/ShayanCommandCenter-Simulator.zip
 
       - name: Upload simulator build
         uses: actions/upload-artifact@v4
