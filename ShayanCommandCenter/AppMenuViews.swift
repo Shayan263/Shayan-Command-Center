@@ -232,41 +232,88 @@ struct PlainTextView: View {
 struct AppLockView: View {
     let onUnlock: () -> Void
     @State private var errorMessage: String?
+    @State private var isAuthenticating = false
+
+    private var biometricType: LABiometryType {
+        AppSecurity.biometricType()
+    }
+
+    private var biometricIcon: String {
+        biometricType == .faceID ? "faceid" : "lock.shield.fill"
+    }
 
     var body: some View {
         ZStack {
             Color(red: 0.025, green: 0.035, blue: 0.07).ignoresSafeArea()
+
             VStack(spacing: 22) {
-                Image(systemName: "lock.shield.fill").font(.system(size: 54)).foregroundStyle(.blue)
-                Text("Shayan Core Locked").font(.title.bold())
-                Text("Authenticate to continue.").foregroundStyle(.secondary)
-                Button { Task { await authenticate() } } label: {
-                    Label("Unlock", systemImage: "faceid")
-                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
+                Image(systemName: biometricIcon)
+                    .font(.system(size: 54))
+                    .foregroundStyle(.blue)
+
+                Text("Shayan Core Locked")
+                    .font(.title.bold())
+
+                Text(biometricType == .faceID
+                     ? "Use Face ID to unlock."
+                     : "Authenticate to continue.")
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    Task { await authenticateIfNeeded() }
+                } label: {
+                    Label(
+                        isAuthenticating ? "Authenticating…" : "Unlock",
+                        systemImage: biometricIcon
+                    )
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(isAuthenticating)
                 .padding(.horizontal, 30)
+
                 if let errorMessage {
-                    Text(errorMessage).font(.footnote).foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center).padding(.horizontal, 24)
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
                 }
             }
             .padding(24)
         }
-        .task { await authenticate() }
+        .task {
+            await authenticateIfNeeded()
+        }
     }
 
-    private func authenticate() async {
+    private func authenticateIfNeeded() async {
+        guard !isAuthenticating else { return }
+
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+
         do {
             try await AppSecurity.authenticate()
             onUnlock()
+        } catch AppSecurityError.biometryNotEnrolled {
+            errorMessage = "Face ID is not enrolled. Set up Face ID in iPhone Settings, then try again."
+        } catch AppSecurityError.biometryUnavailable {
+            errorMessage = "Face ID is currently unavailable. You can use your device passcode."
+        } catch AppSecurityError.biometryLockedOut {
+            errorMessage = "Face ID is locked after failed attempts. Unlock your iPhone with the passcode, then try again."
+        } catch AppSecurityError.passcodeNotSet {
+            errorMessage = "Set a device passcode before enabling Shayan Core protection."
+        } catch AppSecurityError.authentication(let message) {
+            errorMessage = message
         } catch {
-            errorMessage = "Authentication was not completed. You can try again."
+            errorMessage = "Authentication was not completed. Tap Unlock to try again."
         }
     }
 }
 
-    
 struct ResumeBuilderPreviewView: View {
     var body: some View {
         UpcomingFeatureView(icon: "doc.text.magnifyingglass", eyebrow: "UPCOMING MODULE", title: "Shayan Resume Builder",
