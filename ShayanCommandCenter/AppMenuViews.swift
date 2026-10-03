@@ -265,3 +265,59 @@ struct AppLockView: View {
         }
     }
 }
+
+    
+struct ResumeBuilderPreviewView: View {
+    var body: some View {
+        UpcomingFeatureView(icon: "doc.text.magnifyingglass", eyebrow: "UPCOMING MODULE", title: "Shayan Resume Builder",
+            description: "A native resume workspace for building, tailoring and managing role-specific resumes.",
+            roadmap: ["Profile & experience library", "ATS-friendly resume builder", "Role-specific tailoring", "Resume versions & history", "Export-ready resume documents"])
+    }
+}
+
+struct LearningHubPreviewView: View {
+    var body: some View {
+        UpcomingFeatureView(icon: "graduationcap.fill", eyebrow: "UPCOMING MODULE", title: "Shayan Learning Hub",
+            description: "A personal learning system for structured study, SAP growth and long-term skill development.",
+            roadmap: ["Learning paths & goals", "SAP ABAP / S4HANA tracks", "BTP, CAP & cloud learning", "Progress & completion tracking", "Notes, resources & revision"])
+    }
+}
+
+private struct UpcomingFeatureView: View {
+    let icon: String
+    let eyebrow: String
+    let title: String
+    let description: String
+    let roadmap: [String]
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Image(systemName: icon).font(.system(size: 34, weight: .semibold)).foregroundStyle(.blue)
+                        .frame(width: 68, height: 68).background(.blue.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                    Text(eyebrow).font(.caption.weight(.bold)).tracking(1.4).foregroundStyle(.blue)
+                    Text(title).font(.largeTitle.bold())
+                    Text(description).font(.body).foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("PLANNED CAPABILITIES").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(.secondary)
+                    ForEach(roadmap, id: \.self) { item in
+                        HStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle").foregroundStyle(.blue)
+                            Text(item).font(.subheadline)
+                            Spacer()
+                        }.padding(.vertical, 4)
+                    }
+                }
+                .padding(18).background(.white.opacity(0.045))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.07), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                Text("This is a preview. The module will be built into Shayan Core as the platform expands.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }.padding(20)
+        }
+        .background(Color(red: 0.025, green: 0.035, blue: 0.07))
+        .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+    }
+}
