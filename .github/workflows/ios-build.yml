@@ -31,6 +31,11 @@ jobs:
           test -f ShayanCommandCenter/ShayanCommandCenterApp.swift
           test -f ShayanCommandCenter/HomeView.swift
           test -f ShayanCommandCenter/DashboardStatus.swift
+          test -f ShayanCommandCenter/CoreNavigation.swift
+          test -f ShayanCommandCenter/Reminders.swift
+          test -f ShayanCommandCenter/CoreCommandView.swift
+          test -f ShayanCommandCenterWidget/ShayanCoreWidget.swift
+          test -f ShayanCommandCenterWidget/ShayanCoreWidgetBundle.swift
           test -f Configuration/Debug.xcconfig
           test -f Configuration/Release.xcconfig
           test -f ShayanCommandCenter.xcodeproj/xcshareddata/xcschemes/ShayanCommandCenter.xcscheme
