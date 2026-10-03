@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @StateObject private var status = DashboardStatus()
+    @StateObject private var reminderStore = ReminderStore()
     @State private var showSideMenu = false
     @State private var navigationPath: [CoreDestination] = []
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
@@ -14,17 +15,24 @@ struct HomeView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("SHAYAN CORE")
-                                .font(.caption).fontWeight(.bold).tracking(1.5)
-                                .foregroundStyle(.blue)
-                            Text("Good evening, Shayan 👋")
-                                .font(.largeTitle.bold())
-                            Text("Your personal digital core")
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 14) {
+                            ShayanCoreMark(size: 54)
+
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("SHAYAN CORE")
+                                    .font(.caption).fontWeight(.bold).tracking(1.5)
+                                    .foregroundStyle(.blue)
+                                Text("Good evening, Shayan 👋")
+                                    .font(.largeTitle.bold())
+                                    .minimumScaleFactor(0.8)
+                                Text("Your personal digital core")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
 
                         CommandPulse(status: status)
+
+                        CoreOverviewCard(reminderStore: reminderStore, navigationPath: $navigationPath)
 
                         DashboardCard(status: status) {
                             openURL(dashboardURL)
@@ -418,6 +426,158 @@ struct StatusPill: View {
 }
 
     
+
+private struct ShayanCoreMark: View {
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.23, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.02, green: 0.07, blue: 0.18),
+                            Color(red: 0.01, green: 0.025, blue: 0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: size * 0.23, style: .continuous)
+                        .stroke(.blue.opacity(0.7), lineWidth: max(1, size * 0.018))
+                }
+
+            Path { path in
+                path.move(to: CGPoint(x: size * 0.31, y: size * 0.34))
+                path.addCurve(
+                    to: CGPoint(x: size * 0.68, y: size * 0.48),
+                    control1: CGPoint(x: size * 0.42, y: size * 0.26),
+                    control2: CGPoint(x: size * 0.58, y: size * 0.38)
+                )
+                path.addCurve(
+                    to: CGPoint(x: size * 0.36, y: size * 0.66),
+                    control1: CGPoint(x: size * 0.78, y: size * 0.58),
+                    control2: CGPoint(x: size * 0.47, y: size * 0.72)
+                )
+            }
+            .stroke(
+                LinearGradient(colors: [.cyan, .blue], startPoint: .leading, endPoint: .trailing),
+                style: StrokeStyle(lineWidth: size * 0.12, lineCap: .round)
+            )
+
+            Circle()
+                .fill(.cyan)
+                .frame(width: size * 0.11, height: size * 0.11)
+                .offset(x: -size * 0.33, y: size * 0.04)
+                .shadow(color: .cyan.opacity(0.8), radius: size * 0.08)
+
+            Circle()
+                .fill(.cyan)
+                .frame(width: size * 0.11, height: size * 0.11)
+                .offset(x: size * 0.33, y: size * 0.15)
+                .shadow(color: .cyan.opacity(0.8), radius: size * 0.08)
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct CoreOverviewCard: View {
+    @ObservedObject var reminderStore: ReminderStore
+    @Binding var navigationPath: [CoreDestination]
+
+    private var upcoming: [CoreReminder] {
+        reminderStore.reminders
+            .filter { !$0.isCompleted && $0.date >= Date() }
+            .sorted { $0.date < $1.date }
+    }
+
+    private var todayCount: Int {
+        reminderStore.reminders.filter {
+            Calendar.current.isDateInToday($0.date) && !$0.isCompleted
+        }.count
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("CORE OVERVIEW")
+                        .font(.caption.weight(.bold))
+                        .tracking(1.1)
+                        .foregroundStyle(.secondary)
+                    Text(upcoming.first?.title ?? "You're all caught up")
+                        .font(.title3.bold())
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Image(systemName: upcoming.isEmpty ? "checkmark.circle.fill" : "bell.badge.fill")
+                    .font(.title2)
+                    .foregroundStyle(upcoming.isEmpty ? .green : .blue)
+            }
+
+            if let next = upcoming.first {
+                HStack(spacing: 10) {
+                    Image(systemName: "clock")
+                        .foregroundStyle(.blue)
+                    Text(next.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Text("\(todayCount) today")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("No pending reminders. Add one from Smart Reminders.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    navigationPath.append(.reminders)
+                } label: {
+                    Label("Reminders", systemImage: "bell.badge")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(CoreActionButtonStyle())
+
+                Button {
+                    navigationPath.append(.coreCommand)
+                } label: {
+                    Label("Core Command", systemImage: "command")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(CoreActionButtonStyle())
+            }
+        }
+        .padding(18)
+        .background(.white.opacity(0.055))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(.white.opacity(0.09), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+    }
+}
+
+private struct CoreActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
+            .background(.white.opacity(configuration.isPressed ? 0.13 : 0.07))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
 private struct UpcomingModulesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
