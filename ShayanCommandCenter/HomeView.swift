@@ -107,6 +107,9 @@ struct HomeView: View {
                     break
                 }
             }
+            .onAppear {
+                reminderStore.reload()
+            }
             .task { await status.check() }
             .refreshable { await status.check() }
         }
