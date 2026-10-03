@@ -124,6 +124,10 @@ struct HomeView: View {
             .task { await status.check() }
             .refreshable { await status.check() }
         }
+        .environment(\.openURL, OpenURLAction { url in
+            browserURL = url
+            return .handled
+        })
         .sheet(item: $browserURL) { url in
             InAppBrowserView(url: url)
                 .ignoresSafeArea(edges: .bottom)
