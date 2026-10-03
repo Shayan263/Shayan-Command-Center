@@ -37,6 +37,7 @@
 		B00000000000000000000010 /* ShayanCoreWidget.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = ShayanCoreWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000011 /* ShayanCoreWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidget.swift; sourceTree = "<group>"; };
 		B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidgetBundle.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +79,7 @@
 			children = (
 				B00000000000000000000011 /* ShayanCoreWidget.swift */,
 				B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */,
+				B00000000000000000000013 /* Info.plist */,
 			);
 			path = ShayanCommandCenterWidget;
 			sourceTree = "<group>";
@@ -289,10 +291,8 @@
 		B00000000000000000000080 /* Widget Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Shayan Core";
-				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension";
-				INFOPLIST_KEY_NSExtension_NSExtensionPrincipalClass = "$(PRODUCT_MODULE_NAME).ShayanCoreWidgetBundle";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShayanCommandCenterWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.shayan.commandcentre.widget;
 				PRODUCT_NAME = ShayanCoreWidget;
