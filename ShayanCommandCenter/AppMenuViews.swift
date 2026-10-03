@@ -100,3 +100,24 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+
+
+struct PlainTextView: View {
+    @State private var text = ""
+
+    var body: some View {
+        TextEditor(text: $text)
+            .font(.body.monospaced())
+            .padding(.horizontal, 8)
+            .navigationTitle("Plain Text")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Clear") {
+                        text = ""
+                    }
+                    .disabled(text.isEmpty)
+                }
+            }
+    }
+}
