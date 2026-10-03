@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @Environment(\.openURL) private var openURL
     @StateObject private var status = DashboardStatus()
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
 
@@ -22,11 +23,11 @@ struct HomeView: View {
                         }
 
                         DashboardCard(status: status) {
-                            UIApplication.shared.open(dashboardURL)
+                            openURL(dashboardURL)
                         }
 
                         WebsiteCard {
-                            UIApplication.shared.open(URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
+                            openURL(URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
                         }
 
                         Text("More capabilities coming soon")
@@ -42,7 +43,7 @@ struct HomeView: View {
                     Menu {
                         NavigationLink {
                             ImportantLinksView(openExternal: { url in
-                                UIApplication.shared.open(url)
+                                openURL(url)
                             })
                         } label: {
                             Label("Important Links", systemImage: "link")
