@@ -7,7 +7,7 @@ struct CompleteNextReminderAction: AppIntent {
     static var description = IntentDescription("Marks the next Shayan Core reminder as completed.")
 
     func perform() async throws -> some IntentResult {
-        var reminders = CoreReminderStorage.load()
+        var reminders = CoreReminderStorage.load([SharedReminderRecord].self) ?? []
         guard let index = reminders.firstIndex(where: { !$0.isCompleted && $0.date >= Date() }) else {
             return .result()
         }
