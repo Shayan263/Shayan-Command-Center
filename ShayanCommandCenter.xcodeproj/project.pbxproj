@@ -12,6 +12,12 @@
 		A00000000000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* Assets.xcassets */; };
 		A00000000000000000000005 /* AppMenuViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* AppMenuViews.swift */; };
 		A00000000000000000000006 /* AppSecurity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* AppSecurity.swift */; };
+		A00000000000000000000007 /* CoreNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001A /* CoreNavigation.swift */; };
+		A00000000000000000000008 /* Reminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* Reminders.swift */; };
+		A00000000000000000000009 /* CoreCommandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001C /* CoreCommandView.swift */; };
+		B00000000000000000000001 /* ShayanCoreWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* ShayanCoreWidget.swift */; };
+		B00000000000000000000002 /* ShayanCoreWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */; };
+		B00000000000000000000003 /* ShayanCoreWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* ShayanCoreWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +31,12 @@
 		A00000000000000000000017 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		A00000000000000000000018 /* AppMenuViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMenuViews.swift; sourceTree = "<group>"; };
 		A00000000000000000000019 /* AppSecurity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSecurity.swift; sourceTree = "<group>"; };
+		A0000000000000000000001A /* CoreNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreNavigation.swift; sourceTree = "<group>"; };
+		A0000000000000000000001B /* Reminders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reminders.swift; sourceTree = "<group>"; };
+		A0000000000000000000001C /* CoreCommandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreCommandView.swift; sourceTree = "<group>"; };
+		B00000000000000000000010 /* ShayanCoreWidget.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = ShayanCoreWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000011 /* ShayanCoreWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidget.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidgetBundle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +48,20 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		A00000000000000000000071 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B00000000000000000000003 /* ShayanCoreWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXGroup section */
 		A00000000000000000000030 = {
 			isa = PBXGroup;
@@ -43,7 +69,17 @@
 				A00000000000000000000031 /* ShayanCommandCenter */,
 				A00000000000000000000032 /* Configuration */,
 				A00000000000000000000033 /* Products */,
+				B00000000000000000000031 /* ShayanCommandCenterWidget */,
 			);
+			sourceTree = "<group>";
+		};
+		B00000000000000000000031 /* ShayanCommandCenterWidget */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000011 /* ShayanCoreWidget.swift */,
+				B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */,
+			);
+			path = ShayanCommandCenterWidget;
 			sourceTree = "<group>";
 		};
 		A00000000000000000000031 /* ShayanCommandCenter */ = {
@@ -54,6 +90,9 @@
 				A00000000000000000000013 /* DashboardStatus.swift */,
 				A00000000000000000000018 /* AppMenuViews.swift */,
 				A00000000000000000000019 /* AppSecurity.swift */,
+				A0000000000000000000001A /* CoreNavigation.swift */,
+				A0000000000000000000001B /* Reminders.swift */,
+				A0000000000000000000001C /* CoreCommandView.swift */,
 				A00000000000000000000014 /* Assets.xcassets */,
 				A00000000000000000000015 /* Info.plist */,
 			);
@@ -74,6 +113,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000010 /* ShayanCommandCenter.app */,
+				B00000000000000000000010 /* ShayanCoreWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -88,6 +128,10 @@
 				A00000000000000000000020 /* Frameworks */,
 				A00000000000000000000060 /* Sources */,
 				A00000000000000000000070 /* Resources */,
+				A00000000000000000000071 /* Embed App Extensions */,
+			);
+			dependencies = (
+				B00000000000000000000091 /* ShayanCoreWidget dependency */,
 			);
 			buildRules = ();
 			dependencies = ();
@@ -95,6 +139,21 @@
 			productName = ShayanCommandCenter;
 			productReference = A00000000000000000000010 /* ShayanCommandCenter.app */;
 			productType = "com.apple.product-type.application";
+		};
+		B00000000000000000000040 /* ShayanCoreWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B00000000000000000000050 /* Widget build configuration list */;
+			buildPhases = (
+				B00000000000000000000020 /* Widget Frameworks */,
+				B00000000000000000000060 /* Widget Sources */,
+				B00000000000000000000070 /* Widget Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = ShayanCoreWidget;
+			productName = ShayanCoreWidget;
+			productReference = B00000000000000000000010 /* ShayanCoreWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -117,6 +176,7 @@
 			projectRoot = "";
 			targets = (
 				A00000000000000000000040 /* ShayanCommandCenter */,
+				B00000000000000000000040 /* ShayanCoreWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -132,6 +192,24 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXFrameworksBuildPhase (Widget) */
+		B00000000000000000000020 /* Widget Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase (Widget) */
+
+/* Begin PBXResourcesBuildPhase (Widget) */
+		B00000000000000000000070 /* Widget Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase (Widget) */
+
 /* Begin PBXSourcesBuildPhase section */
 		A00000000000000000000060 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -142,10 +220,25 @@
 				A00000000000000000000003 /* DashboardStatus.swift in Sources */,
 				A00000000000000000000005 /* AppMenuViews.swift in Sources */,
 				A00000000000000000000006 /* AppSecurity.swift in Sources */,
+				A00000000000000000000007 /* CoreNavigation.swift in Sources */,
+				A00000000000000000000008 /* Reminders.swift in Sources */,
+				A00000000000000000000009 /* CoreCommandView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase (Widget) */
+		B00000000000000000000060 /* Widget Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000001 /* ShayanCoreWidget.swift in Sources */,
+				B00000000000000000000002 /* ShayanCoreWidgetBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase (Widget) */
 
 /* Begin XCBuildConfiguration section */
 		A00000000000000000000080 /* Debug */ = {
@@ -194,6 +287,34 @@
 			buildSettings = { };
 			name = Release;
 		};
+		B00000000000000000000080 /* Widget Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Shayan Core";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shayan.commandcentre.widget;
+				PRODUCT_NAME = ShayanCoreWidget;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B00000000000000000000081 /* Widget Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Shayan Core";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shayan.commandcentre.widget;
+				PRODUCT_NAME = ShayanCoreWidget;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -215,7 +336,28 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		B00000000000000000000050 /* Widget build configuration list */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B00000000000000000000080 /* Widget Debug */,
+				B00000000000000000000081 /* Widget Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 	};
+		B00000000000000000000090 /* Widget Target Proxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000041;
+			proxyType = 1;
+			remoteGlobalIDString = B00000000000000000000040;
+			remoteInfo = ShayanCoreWidget;
+		};
+		B00000000000000000000091 /* ShayanCoreWidget dependency */ = {
+			isa = PBXTargetDependency;
+			target = B00000000000000000000040;
+			targetProxy = B00000000000000000000090;
+		};
 	rootObject = A00000000000000000000041;
 }
