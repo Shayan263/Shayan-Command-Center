@@ -56,7 +56,7 @@ final class ReminderStore: ObservableObject {
     }
 
     private func load() {
-        reminders = CoreReminderStorage.load()
+        reminders = (CoreReminderStorage.load([CoreReminder].self) ?? []).sorted { $0.date < $1.date }
     }
 
     private func persist() {
