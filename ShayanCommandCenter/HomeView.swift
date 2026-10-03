@@ -35,7 +35,7 @@ struct HomeView: View {
 
                         UpcomingModulesSection()
 
-                        Text("Tap ••• to open the command sidebar.")
+                        Text("Tap ••• for the sidebar or 🔍 for Core Command.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
@@ -74,6 +74,18 @@ struct HomeView: View {
                     }
                     .accessibilityLabel(showSideMenu ? "Close command sidebar" : "Open command sidebar")
                 }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: CoreDestination.coreCommand) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.body.weight(.semibold))
+                            .frame(minWidth: 36, minHeight: 36)
+                    }
+                    .accessibilityLabel("Open Core Command")
+                }
+            }
+            .navigationDestination(for: CoreDestination.self) { destination in
+                CoreDestinationView(destination: destination, openExternal: openURL)
             }
             .task { await status.check() }
             .refreshable { await status.check() }
@@ -124,57 +136,53 @@ private struct CommandSidebar: View {
                 VStack(alignment: .leading, spacing: 6) {
                     SidebarSectionTitle("COMMAND")
 
-                    NavigationLink {
-                        ImportantLinksView(openExternal: openExternal)
-                    } label: {
+                    NavigationLink(value: CoreDestination.coreCommand) {
+                        SidebarLabel(title: "Core Command", subtitle: "Search your Core actions", icon: "magnifyingglass")
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink(value: CoreDestination.importantLinks) {
                         SidebarLabel(title: "Important Links", subtitle: "Website, LinkedIn & GitHub", icon: "link")
                     }
                     .buttonStyle(.plain)
 
-                    NavigationLink {
-                        QuickActionsView()
-                    } label: {
+                    NavigationLink(value: CoreDestination.quickActions) {
                         SidebarLabel(title: "Quick Actions", subtitle: "Open, copy & share", icon: "bolt.fill")
                     }
                     .buttonStyle(.plain)
 
-                    NavigationLink {
-                        InsightsView()
-                    } label: {
+                    NavigationLink(value: CoreDestination.insights) {
                         SidebarLabel(title: "Insights", subtitle: "System & portfolio status", icon: "chart.bar.xaxis")
                     }
                     .buttonStyle(.plain)
 
                     SidebarSectionTitle("UPCOMING")
 
-                    NavigationLink {
-                        ResumeBuilderPreviewView()
-                    } label: {
+                    NavigationLink(value: CoreDestination.resume) {
                         SidebarLabel(title: "Shayan Resume Builder", subtitle: "Build & tailor resumes", icon: "doc.text.magnifyingglass")
                     }
                     .buttonStyle(.plain)
 
-                    NavigationLink {
-                        LearningHubPreviewView()
-                    } label: {
+                    NavigationLink(value: CoreDestination.learning) {
                         SidebarLabel(title: "Shayan Learning Hub", subtitle: "Learn, track & grow", icon: "graduationcap.fill")
                     }
                     .buttonStyle(.plain)
 
                     SidebarSectionTitle("PERSONAL")
 
-                    NavigationLink {
-                        PlainTextView()
-                    } label: {
+                    NavigationLink(value: CoreDestination.reminders) {
+                        SidebarLabel(title: "Smart Reminders", subtitle: "Schedule & manage reminders", icon: "bell.badge")
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink(value: CoreDestination.protectedNotes) {
                         SidebarLabel(title: "Protected Notes", subtitle: "Secure Keychain notes", icon: "lock.text")
                     }
                     .buttonStyle(.plain)
 
                     SidebarSectionTitle("APP")
 
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
+                    NavigationLink(value: CoreDestination.settings) {
                         SidebarLabel(title: "Settings", subtitle: "Security & preferences", icon: "gearshape")
                     }
                     .buttonStyle(.plain)
