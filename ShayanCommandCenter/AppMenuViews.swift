@@ -212,12 +212,10 @@ struct PlainTextView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    if let url = URL(string: "data:text/plain,") {
-                        ShareLink(item: url) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        .accessibilityLabel("Share note")
+                    ShareLink(item: text) {
+                        Image(systemName: "square.and.arrow.up")
                     }
+                    .accessibilityLabel("Share note")
 
                     Button("Clear") {
                         showClearConfirmation = true
