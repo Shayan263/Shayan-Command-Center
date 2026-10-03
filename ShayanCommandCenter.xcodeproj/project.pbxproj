@@ -16,6 +16,7 @@
 		A00000000000000000000008 /* Reminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* Reminders.swift */; };
 		A00000000000000000000009 /* CoreCommandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001C /* CoreCommandView.swift */; };
 		A0000000000000000000000A /* CoreReminderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001D /* CoreReminderModel.swift */; };
+		A0000000000000000000000B /* InAppBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001E /* InAppBrowserView.swift */; };
 		B00000000000000000000001 /* ShayanCoreWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* ShayanCoreWidget.swift */; };
 		B00000000000000000000002 /* ShayanCoreWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */; };
 		B00000000000000000000004 /* CoreWidgetActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* CoreWidgetActions.swift */; };
@@ -38,6 +39,7 @@
 		A0000000000000000000001B /* Reminders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reminders.swift; sourceTree = "<group>"; };
 		A0000000000000000000001C /* CoreCommandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreCommandView.swift; sourceTree = "<group>"; };
 		A0000000000000000000001D /* CoreReminderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreReminderModel.swift; sourceTree = "<group>"; };
+		A0000000000000000000001E /* InAppBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppBrowserView.swift; sourceTree = "<group>"; };
 		B00000000000000000000010 /* ShayanCoreWidget.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = ShayanCoreWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000011 /* ShayanCoreWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidget.swift; sourceTree = "<group>"; };
 		B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidgetBundle.swift; sourceTree = "<group>"; };
@@ -104,6 +106,7 @@
 				A0000000000000000000001B /* Reminders.swift */,
 				A0000000000000000000001C /* CoreCommandView.swift */,
 				A0000000000000000000001D /* CoreReminderModel.swift */,
+				A0000000000000000000001E /* InAppBrowserView.swift */,
 				A00000000000000000000014 /* Assets.xcassets */,
 				A00000000000000000000015 /* Info.plist */,
 			);
@@ -234,6 +237,7 @@
 				A00000000000000000000008 /* Reminders.swift in Sources */,
 				A00000000000000000000009 /* CoreCommandView.swift in Sources */,
 				A0000000000000000000000A /* CoreReminderModel.swift in Sources */,
+				A0000000000000000000000B /* InAppBrowserView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
