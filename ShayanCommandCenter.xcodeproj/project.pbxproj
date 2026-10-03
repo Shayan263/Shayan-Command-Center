@@ -19,6 +19,7 @@
 		B00000000000000000000001 /* ShayanCoreWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* ShayanCoreWidget.swift */; };
 		B00000000000000000000002 /* ShayanCoreWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */; };
 		B00000000000000000000004 /* CoreWidgetActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* CoreWidgetActions.swift */; };
+		B00000000000000000000005 /* CoreReminderModel.swift in Widget Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001D /* CoreReminderModel.swift */; };
 		B00000000000000000000003 /* ShayanCoreWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* ShayanCoreWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -246,6 +247,7 @@
 				B00000000000000000000001 /* ShayanCoreWidget.swift in Sources */,
 				B00000000000000000000002 /* ShayanCoreWidgetBundle.swift in Sources */,
 				B00000000000000000000004 /* CoreWidgetActions.swift in Sources */,
+				B00000000000000000000005 /* CoreReminderModel.swift in Widget Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
