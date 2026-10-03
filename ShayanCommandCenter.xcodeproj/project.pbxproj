@@ -291,9 +291,11 @@
 		B00000000000000000000080 /* Widget Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShayanCommandCenterWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.shayan.commandcentre.widget;
 				PRODUCT_NAME = ShayanCoreWidget;
 				SKIP_INSTALL = YES;
@@ -305,9 +307,11 @@
 		B00000000000000000000081 /* Widget Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShayanCommandCenterWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.shayan.commandcentre.widget;
 				PRODUCT_NAME = ShayanCoreWidget;
 				SKIP_INSTALL = YES;
