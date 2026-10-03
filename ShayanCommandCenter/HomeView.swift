@@ -1,12 +1,17 @@
 import SwiftUI
 
+private struct BrowserDestination: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @StateObject private var status = DashboardStatus()
     @StateObject private var reminderStore = ReminderStore()
     @State private var showSideMenu = false
     @State private var navigationPath: [CoreDestination] = []
-    @State private var browserURL: URL?
+    @State private var browserDestination: BrowserDestination?
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
 
     private var greeting: String {
@@ -46,11 +51,11 @@ struct HomeView: View {
                         CoreOverviewCard(reminderStore: reminderStore, navigationPath: $navigationPath)
 
                         DashboardCard(status: status) {
-                            browserURL = dashboardURL
+                            browserDestination = BrowserDestination(url: dashboardURL)
                         }
 
                         WebsiteCard {
-                            browserURL = URL(string: "https://shayan263.github.io/Shayan_Profile/")!
+                            browserDestination = BrowserDestination(url: URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
                         }
 
                         UpcomingModulesSection()
@@ -74,7 +79,7 @@ struct HomeView: View {
                         }
 
                     CommandSidebar(isPresented: $showSideMenu, openExternal: { url in
-                        browserURL = url
+                        browserDestination = BrowserDestination(url: url)
                     })
                     .frame(width: 292)
                     .transition(.move(edge: .leading))
@@ -105,7 +110,7 @@ struct HomeView: View {
                 }
             }
             .navigationDestination(for: CoreDestination.self) { destination in
-                CoreDestinationView(destination: destination, openExternal: { browserURL = $0 })
+                CoreDestinationView(destination: destination, openExternal: { browserDestination = BrowserDestination(url: $0) })
             }
             .onOpenURL { url in
                 guard url.scheme == "shayan-core" else { return }
@@ -125,11 +130,11 @@ struct HomeView: View {
             .refreshable { await status.check() }
         }
         .environment(\.openURL, OpenURLAction { url in
-            browserURL = url
+            browserDestination = BrowserDestination(url: url)
             return .handled
         })
-        .sheet(item: $browserURL) { url in
-            InAppBrowserView(url: url)
+        .sheet(item: $browserDestination) { destination in
+            InAppBrowserView(url: destination.url)
                 .ignoresSafeArea(edges: .bottom)
         }
     }
