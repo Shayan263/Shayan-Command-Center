@@ -71,3 +71,46 @@ jobs:
         with:
           name: shayan-command-centre-simulator
           path: artifacts/ShayanCommandCenter-Simulator.zip
+
+
+      - name: Build unsigned iPhone app
+        run: |
+          set -euo pipefail
+          rm -rf build/DeviceDerivedData
+          xcodebuild \
+            -project ShayanCommandCenter.xcodeproj \
+            -scheme ShayanCommandCenter \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DeviceDerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
+
+      - name: Verify device app bundle
+        run: |
+          set -euo pipefail
+          APP="build/DeviceDerivedData/Build/Products/Release-iphoneos/ShayanCommandCenter.app"
+          test -d "$APP"
+          test -f "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
+          file "$APP/ShayanCommandCenter"
+
+      - name: Package unsigned iPhone IPA
+        run: |
+          set -euo pipefail
+          APP="build/DeviceDerivedData/Build/Products/Release-iphoneos/ShayanCommandCenter.app"
+          rm -rf ipa
+          mkdir -p ipa/Payload artifacts
+          cp -R "$APP" ipa/Payload/
+          cd ipa
+          zip -qry "../artifacts/ShayanCommandCenter-Unsigned.ipa" Payload
+
+      - name: Upload unsigned iPhone IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: shayan-command-centre-unsigned-ipa
+          path: artifacts/ShayanCommandCenter-Unsigned.ipa
