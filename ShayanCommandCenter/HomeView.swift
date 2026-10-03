@@ -6,6 +6,7 @@ struct HomeView: View {
     @StateObject private var reminderStore = ReminderStore()
     @State private var showSideMenu = false
     @State private var navigationPath: [CoreDestination] = []
+    @State private var browserURL: URL?
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
 
     private var greeting: String {
@@ -45,11 +46,11 @@ struct HomeView: View {
                         CoreOverviewCard(reminderStore: reminderStore, navigationPath: $navigationPath)
 
                         DashboardCard(status: status) {
-                            openURL(dashboardURL)
+                            browserURL = dashboardURL
                         }
 
                         WebsiteCard {
-                            openURL(URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
+                            browserURL = URL(string: "https://shayan263.github.io/Shayan_Profile/")!
                         }
 
                         UpcomingModulesSection()
@@ -73,7 +74,7 @@ struct HomeView: View {
                         }
 
                     CommandSidebar(isPresented: $showSideMenu, openExternal: { url in
-                        openURL(url)
+                        browserURL = url
                     })
                     .frame(width: 292)
                     .transition(.move(edge: .leading))
@@ -104,7 +105,7 @@ struct HomeView: View {
                 }
             }
             .navigationDestination(for: CoreDestination.self) { destination in
-                CoreDestinationView(destination: destination, openExternal: { openURL($0) })
+                CoreDestinationView(destination: destination, openExternal: { browserURL = $0 })
             }
             .onOpenURL { url in
                 guard url.scheme == "shayan-core" else { return }
@@ -122,6 +123,10 @@ struct HomeView: View {
             }
             .task { await status.check() }
             .refreshable { await status.check() }
+        }
+        .sheet(item: $browserURL) { url in
+            InAppBrowserView(url: url)
+                .ignoresSafeArea(edges: .bottom)
         }
     }
 }
