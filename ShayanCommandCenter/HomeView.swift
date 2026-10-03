@@ -4,10 +4,11 @@ struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @StateObject private var status = DashboardStatus()
     @State private var showSideMenu = false
+    @State private var navigationPath: [CoreDestination] = []
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack(alignment: .leading) {
                 Color(red: 0.025, green: 0.035, blue: 0.07).ignoresSafeArea()
 
@@ -86,6 +87,17 @@ struct HomeView: View {
             }
             .navigationDestination(for: CoreDestination.self) { destination in
                 CoreDestinationView(destination: destination, openExternal: openURL)
+            }
+            .onOpenURL { url in
+                guard url.scheme == "shayan-core" else { return }
+                switch url.host {
+                case "command":
+                    navigationPath = [.coreCommand]
+                case "reminders":
+                    navigationPath = [.reminders]
+                default:
+                    break
+                }
             }
             .task { await status.check() }
             .refreshable { await status.check() }
