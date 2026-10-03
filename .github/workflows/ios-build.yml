@@ -1,5 +1,9 @@
 name: iOS Build
 
+concurrency:
+  group: shayan-core-ios-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -113,6 +117,26 @@ jobs:
           cp -R "$APP" ipa/Payload/
           cd ipa
           zip -qry "../artifacts/ShayanCommandCenter-Unsigned.ipa" Payload
+
+      - name: Sanity check unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          IPA_PATH="build/IPA/ShayanCommandCenter-Unsigned.ipa"
+          test -f "$IPA_PATH"
+          rm -rf build/ipa-sanity
+          mkdir -p build/ipa-sanity
+          unzip -q "$IPA_PATH" -d build/ipa-sanity
+          APP_PATH="build/ipa-sanity/Payload/ShayanCommandCenter.app"
+          test -d "$APP_PATH"
+          test -f "$APP_PATH/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist"
+          if [ -d "$APP_PATH/PlugIns/ShayanCoreWidget.appex" ]; then
+            WIDGET_PATH="$APP_PATH/PlugIns/ShayanCoreWidget.appex"
+            test -f "$WIDGET_PATH/Info.plist"
+            /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$WIDGET_PATH/Info.plist" | grep -q "com.apple.widgetkit-extension"
+            /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPrincipalClass" "$WIDGET_PATH/Info.plist"
+          fi
 
       - name: Upload unsigned iPhone IPA
         uses: actions/upload-artifact@v4
