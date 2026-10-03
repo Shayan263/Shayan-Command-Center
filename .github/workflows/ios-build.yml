@@ -122,7 +122,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          IPA_PATH="build/IPA/ShayanCommandCenter-Unsigned.ipa"
+          IPA_PATH="artifacts/ShayanCommandCenter-Unsigned.ipa"
           test -f "$IPA_PATH"
           rm -rf build/ipa-sanity
           mkdir -p build/ipa-sanity
