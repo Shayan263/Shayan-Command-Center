@@ -4,12 +4,18 @@
 <dict>
     <key>CFBundleDisplayName</key>
     <string>Shayan Core</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
     <string>com.shayan.commandcentre.widget</string>
     <key>CFBundleName</key>
     <string>ShayanCoreWidget</string>
     <key>CFBundlePackageType</key>
     <string>XPC!</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>MinimumOSVersion</key>
     <string>17.0</string>
     <key>NSExtension</key>
