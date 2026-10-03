@@ -8,6 +8,16 @@ struct HomeView: View {
     @State private var navigationPath: [CoreDestination] = []
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
 
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return "Good morning, Shayan 👋"
+        case 12..<17: return "Good afternoon, Shayan 👋"
+        case 17..<22: return "Good evening, Shayan 👋"
+        default: return "Good night, Shayan 👋"
+        }
+    }
+
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack(alignment: .leading) {
@@ -22,7 +32,7 @@ struct HomeView: View {
                                 Text("SHAYAN CORE")
                                     .font(.caption).fontWeight(.bold).tracking(1.5)
                                     .foregroundStyle(.blue)
-                                Text("Good evening, Shayan 👋")
+                                Text(greeting)
                                     .font(.largeTitle.bold())
                                     .minimumScaleFactor(0.8)
                                 Text("Your personal digital core")
@@ -493,6 +503,10 @@ private struct ShayanCoreMark: View {
 private struct CoreOverviewCard: View {
     @ObservedObject var reminderStore: ReminderStore
     @Binding var navigationPath: [CoreDestination]
+    @State private var showAddReminder = false
+    @State private var reminderTitle = ""
+    @State private var reminderDate = Date().addingTimeInterval(3600)
+    @State private var reminderError: String?
 
     private var upcoming: [CoreReminder] {
         reminderStore.reminders
@@ -553,15 +567,59 @@ private struct CoreOverviewCard: View {
                 .buttonStyle(CoreActionButtonStyle())
 
                 Button {
-                    navigationPath.append(.coreCommand)
+                    showAddReminder = true
                 } label: {
-                    Label("Core Command", systemImage: "command")
+                    Label("Add Reminder", systemImage: "plus")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(CoreActionButtonStyle())
             }
         }
         .padding(18)
+        .sheet(isPresented: $showAddReminder) {
+            NavigationStack {
+                Form {
+                    Section("Reminder") {
+                        TextField("What do you need to remember?", text: $reminderTitle)
+                            .textInputAutocapitalization(.sentences)
+                        DatePicker("When", selection: $reminderDate, in: Date()...)
+                    }
+                    Section {
+                        Button("Schedule Reminder") {
+                            let trimmed = reminderTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !trimmed.isEmpty else { return }
+                            Task {
+                                do {
+                                    try await reminderStore.add(title: trimmed, date: reminderDate)
+                                    reminderTitle = ""
+                                    reminderDate = Date().addingTimeInterval(3600)
+                                    showAddReminder = false
+                                } catch {
+                                    reminderError = error.localizedDescription
+                                }
+                            }
+                        }
+                        .disabled(reminderTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+                .navigationTitle("New Reminder")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showAddReminder = false }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+        .alert("Reminder Not Scheduled", isPresented: Binding(
+            get: { reminderError != nil },
+            set: { if !$0 { reminderError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(reminderError ?? "")
+        }
         .background(.white.opacity(0.055))
         .overlay(
             RoundedRectangle(cornerRadius: 22)
