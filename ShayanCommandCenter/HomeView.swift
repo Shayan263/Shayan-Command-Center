@@ -425,7 +425,7 @@ private struct WebsiteDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 DetailHeader(icon: "globe", title: "My Website", subtitle: "Public portfolio and professional profile")
-                LiveDetailCard(isOnline: status.isOnline, response: status.responseTimeMs, lastChecked: status.lastCheckedText)
+                LiveDetailCard(isOnline: status.isOnline, isChecking: status.isChecking, response: status.responseTimeMs, lastChecked: status.lastCheckedText)
                 DetailInfo(title: "What this does", text: "This screen shows the live state of the public portfolio and gives you a direct way to open it.")
                 Button { openExternal(status.url) } label: {
                     Label("Visit Website", systemImage: "arrow.up.right")
