@@ -223,8 +223,7 @@ struct AICommandCenterView: View {
         ScrollView {
             VStack(spacing: 16) {
                 VStack(spacing: 4) {
-                    Text("AI COMMAND CENTRE").font(.caption.weight(.bold)).tracking(1.5).foregroundStyle(.blue)
-                    Text("Talk to Shayan Core").font(.title.bold())
+                    Text("SHAYAN CORE").font(.caption.weight(.bold)).tracking(1.5).foregroundStyle(.blue)
                     Text(voice.statusText).font(.subheadline).foregroundStyle(.secondary)
                 }
 
