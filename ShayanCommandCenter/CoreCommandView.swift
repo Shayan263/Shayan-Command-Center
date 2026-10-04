@@ -63,12 +63,18 @@ struct CoreCommandView: View {
 private enum AICommandKind {
     case emailDraft(recipient: String, subject: String, body: String)
     case portfolioStatus
+    case navigate(CoreDestination, String)
+    case navigateHome
+    case openURL(URL, String)
     case unsupported
 
     var title: String {
         switch self {
         case .emailDraft: return "Email draft"
         case .portfolioStatus: return "Portfolio status"
+        case .navigate: return "Opening Shayan Core"
+        case .navigateHome: return "Going Home"
+        case .openURL: return "Opening"
         case .unsupported: return "Command not recognized"
         }
     }
