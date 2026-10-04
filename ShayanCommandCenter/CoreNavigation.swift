@@ -3,7 +3,6 @@ import SwiftUI
 enum CoreDestination: Hashable {
     case coreCommand
     case profile
-    case importantLinks
     case quickActions
     case insights
     case sentinel
@@ -24,8 +23,6 @@ struct CoreDestinationView: View {
             CoreCommandView()
         case .profile:
             ProfileView()
-        case .importantLinks:
-            ImportantLinksView(openExternal: openExternal)
         case .quickActions:
             QuickActionsView()
         case .insights:
