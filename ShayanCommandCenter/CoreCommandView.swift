@@ -235,7 +235,12 @@ private struct AICommandEngine {
         // Always inspect the complete request before deciding what it means.
         if let action = routeAction(lower) { return action }
 
-        if containsAny(lower, ["connect gmail", "connect my gmail", "connect email", "connect my email", "link gmail", "link my email"]) {
+        if containsAny(lower, [
+            "connect gmail", "connect my gmail", "connect to gmail", "connect to my gmail",
+            "connect me to gmail", "connect me to my gmail", "connect me with gmail",
+            "connect gmail account", "link gmail", "link my gmail", "link my email",
+            "connect email", "connect my email"
+        ]) {
             return AICommandPlan(kind: .connectGmail, summary: "I'll connect Gmail with read-only access.", requiresApproval: false)
         }
 
@@ -453,7 +458,20 @@ private struct AICommandEngine {
         if let subjectRange = cleaned.range(of: "subject:", options: .caseInsensitive) {
             cleaned = String(cleaned[..<subjectRange.lowerBound])
         }
-        cleaned = cleaned.replacingOccurrences(of: " to ", with: " ", options: .caseInsensitive)
+
+        // Remove only the recipient connector, not every occurrence of "to" in the
+        // user's message. This preserves real message text such as "I want to discuss..."
+        let recipientConnectors = [
+            " to ",
+            " for "
+        ]
+        for connector in recipientConnectors {
+            if let range = cleaned.range(of: connector, options: .caseInsensitive) {
+                cleaned = String(cleaned[range.upperBound...])
+                break
+            }
+        }
+
         cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
         return cleaned.isEmpty ? nil : cleaned
     }
@@ -811,6 +829,14 @@ struct AICommandCenterView: View {
     private func submitTypedCommand() {
         let text = command.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+
+        // Typed commands and voice recognition share the same conversation. Stop an
+        // active recognition turn before processing typed input so the same request
+        // cannot arrive again from the microphone callback.
+        if voice.isListening {
+            voice.stopListening()
+        }
+
         command = ""
         handleCommand(text)
     }
