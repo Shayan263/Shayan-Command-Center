@@ -81,29 +81,97 @@ private struct AICommandPlan {
 }
 
 private struct AICommandEngine {
+    private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
+    private let websiteURL = URL(string: "https://shayan263.github.io/Shayan_Profile/")!
+    private let githubURL = URL(string: "https://github.com/Shayan263")!
+    private let linkedInURL = URL(string: "https://www.linkedin.com/")!
+
     func plan(_ input: String) -> AICommandPlan {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let lower = text.lowercased()
+
+        if let action = routeAction(lower) { return action }
 
         if lower.contains("email") || lower.contains("mail") {
             let recipient = extractEmail(from: text) ?? ""
             let subject = extractSubject(from: text)
             let body = extractBody(from: text) ?? text
             guard !recipient.isEmpty else {
-                return AICommandPlan(kind: .unsupported, summary: "I need an email address to prepare the email.", requiresApproval: false)
+                return AICommandPlan(kind: .unsupported, summary: "Tell me the email address and what you want me to say.", requiresApproval: false)
             }
-            return AICommandPlan(
-                kind: .emailDraft(recipient: recipient, subject: subject, body: body),
-                summary: "Prepare an email to \(recipient) for your review.",
-                requiresApproval: true
-            )
+            return AICommandPlan(kind: .emailDraft(recipient: recipient, subject: subject, body: body),
+                                 summary: "I prepared an email to \(recipient). I'll wait for your approval before opening Mail.",
+                                 requiresApproval: true)
         }
 
-        if lower.contains("portfolio") || lower.contains("website status") || lower.contains("dashboard status") {
-            return AICommandPlan(kind: .portfolioStatus, summary: "Check the live portfolio dashboard and website status.", requiresApproval: false)
+        if lower.contains("portfolio status") || lower.contains("website status") ||
+            lower.contains("dashboard status") || lower.contains("is my portfolio") ||
+            lower.contains("is the dashboard") || lower.contains("is the website") ||
+            lower.hasPrefix("check ") {
+            return AICommandPlan(kind: .portfolioStatus, summary: "I'll check the live portfolio systems.", requiresApproval: false)
         }
 
-        return AICommandPlan(kind: .unsupported, summary: "This command is not connected yet. The command engine is ready for more actions.", requiresApproval: false)
+        return AICommandPlan(
+            kind: .unsupported,
+            summary: "I don't have an action mapped for that yet. Try: open dashboard, open website, open learning hub, open settings, open security, scan QR, or open notes.",
+            requiresApproval: false
+        )
+    }
+
+    private func routeAction(_ lower: String) -> AICommandPlan? {
+        let openVerbs = ["open ", "launch ", "show ", "go to ", "take me to ", "visit "]
+        let isOpenRequest = openVerbs.contains(where: { lower.hasPrefix($0) })
+
+        if lower == "dashboard" || (isOpenRequest && containsAny(lower, ["dashboard", "admin dashboard", "portfolio dashboard"])) {
+            return AICommandPlan(kind: .openURL(dashboardURL, "Opening your private portfolio dashboard."), summary: "Opening your private portfolio dashboard.", requiresApproval: false)
+        }
+        if lower == "website" || lower == "my website" || (isOpenRequest && containsAny(lower, ["website", "portfolio website", "my portfolio"])) {
+            return AICommandPlan(kind: .openURL(websiteURL, "Opening your portfolio website."), summary: "Opening your portfolio website.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["github", "git hub", "repositories"]) {
+            return AICommandPlan(kind: .openURL(githubURL, "Opening your GitHub profile."), summary: "Opening your GitHub profile.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["linkedin", "linked in"]) {
+            return AICommandPlan(kind: .openURL(linkedInURL, "Opening LinkedIn."), summary: "Opening LinkedIn.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["home", "home screen"]) {
+            return AICommandPlan(kind: .navigateHome, summary: "Returning to Home.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["ai command", "command centre", "command center", "voice agent"]) {
+            return AICommandPlan(kind: .navigate(.aiCommandCenter, "Opening AI Command Centre."), summary: "Opening AI Command Centre.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["quick actions", "quick action"]) {
+            return AICommandPlan(kind: .navigate(.quickActions, "Opening Quick Actions."), summary: "Opening Quick Actions.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["insights", "insight"]) {
+            return AICommandPlan(kind: .navigate(.insights, "Opening Insights."), summary: "Opening Insights.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["security", "sentinel", "security centre", "security center"]) {
+            return AICommandPlan(kind: .navigate(.sentinel, "Opening Core Sentinel."), summary: "Opening Core Sentinel.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["resume", "resume builder"]) {
+            return AICommandPlan(kind: .navigate(.resume, "Opening Resume Builder."), summary: "Opening Resume Builder.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["learning hub", "learning", "ai automations"]) {
+            return AICommandPlan(kind: .navigate(.learning, "Opening Learning Hub."), summary: "Opening Learning Hub.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["protected notes", "notes", "secure notes"]) {
+            return AICommandPlan(kind: .navigate(.protectedNotes, "Opening Protected Notes."), summary: "Opening Protected Notes.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["settings", "preferences"]) {
+            return AICommandPlan(kind: .navigate(.settings, "Opening Settings."), summary: "Opening Settings.", requiresApproval: false)
+        }
+        if isOpenRequest && containsAny(lower, ["profile", "my profile"]) {
+            return AICommandPlan(kind: .navigate(.profile, "Opening your profile."), summary: "Opening your profile.", requiresApproval: false)
+        }
+        if containsAny(lower, ["scan qr", "scan a qr", "qr code", "qr scanner"]) {
+            return AICommandPlan(kind: .navigate(.qrScanner, "Opening QR Scanner."), summary: "Opening QR Scanner.", requiresApproval: false)
+        }
+        return nil
+    }
+
+    private func containsAny(_ text: String, _ values: [String]) -> Bool {
+        values.contains(where: { text.contains($0) })
     }
 
     private func extractEmail(from text: String) -> String? {
@@ -118,7 +186,7 @@ private struct AICommandEngine {
     private func extractSubject(from text: String) -> String {
         let lower = text.lowercased()
         guard let subjectRange = lower.range(of: "subject:") else { return "Message from Shayan Core" }
-        let remainder = text[subjectRange.upperBound...]
+        let remainder = text[subjectRange.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
         return remainder.split(separator: " ", maxSplits: 1).first.map(String.init) ?? "Message from Shayan Core"
     }
 
@@ -133,102 +201,75 @@ private struct AICommandEngine {
         return nil
     }
 }
-
 struct AICommandCenterView: View {
     @StateObject private var voice = VoiceConversationController()
     @State private var command = ""
     @State private var plan: AICommandPlan?
     @State private var activity: [String] = []
     @State private var showMailUnavailable = false
+    @State private var route: CoreDestination?
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     private let engine = AICommandEngine()
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
-                VStack(spacing: 6) {
-                    Text("AI COMMAND CENTRE")
-                        .font(.caption.weight(.bold))
-                        .tracking(1.5)
-                        .foregroundStyle(.blue)
-                    Text("Talk to Shayan Core")
-                        .font(.title.bold())
-                    Text(voice.statusText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 16) {
+                VStack(spacing: 4) {
+                    Text("AI COMMAND CENTRE").font(.caption.weight(.bold)).tracking(1.5).foregroundStyle(.blue)
+                    Text("Talk to Shayan Core").font(.title.bold())
+                    Text(voice.statusText).font(.subheadline).foregroundStyle(.secondary)
                 }
 
-                VoiceOrb(voice: voice) {
-                    Task { await toggleVoice() }
-                }
-                .frame(height: 310)
-
-                Button {
-                    Task { await toggleVoice() }
-                } label: {
-                    Label(
-                        voice.isListening ? "Listening — tap to stop" : (voice.isSpeaking ? "Tap to interrupt" : "Tap to talk"),
-                        systemImage: voice.isListening ? "waveform" : (voice.isSpeaking ? "hand.raised.fill" : "mic.fill")
-                    )
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                }
-                .buttonStyle(.borderedProminent)
+                VoiceOrb(voice: voice) { Task { await toggleVoice() } }
+                    .frame(height: 280)
 
                 if !voice.transcript.isEmpty {
                     conversationBubble(title: "YOU", text: voice.transcript, alignment: .trailing)
                 }
-
                 if !voice.reply.isEmpty {
                     conversationBubble(title: "SHAYAN CORE", text: voice.reply, alignment: .leading)
                 }
-
-                if let plan {
+                if let plan, plan.requiresApproval {
                     planCard(plan)
                 }
 
                 TextField("Type a command if you prefer…", text: $command, axis: .vertical)
                     .textFieldStyle(.plain)
-                    .padding(14)
+                    .padding(13)
                     .background(Color.primary.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
                     .onSubmit { submitTypedCommand() }
 
                 if !activity.isEmpty {
-                    VStack(alignment: .leading, spacing: 9) {
-                        Text("ACTIVITY")
-                            .font(.caption.weight(.bold))
-                            .tracking(1)
-                            .foregroundStyle(.secondary)
-                        ForEach(activity, id: \.self) { item in
-                            Label(item, systemImage: "checkmark.circle.fill")
-                                .font(.footnote)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("ACTIVITY").font(.caption.weight(.bold)).tracking(1).foregroundStyle(.secondary)
+                        ForEach(activity.prefix(4), id: \.self) { item in
+                            Label(item, systemImage: "checkmark.circle.fill").font(.footnote)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Text("Hands-free conversation • voice interruption • automatic turn-taking • approval-first actions")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
+                Text("Tap the orb to interrupt • Shayan Core automatically listens after every reply")
+                    .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center)
             }
-            .padding(20)
+            .padding(.horizontal, 18)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
         }
+        .background(Color(.systemBackground))
         .navigationTitle("AI Command Centre")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $route) { destination in
+            CoreDestinationView(destination: destination, openExternal: { url in openURL(url) })
+        }
         .task {
-            voice.onFinalTranscript = { text in
-                handleCommand(text)
-            }
-            voice.onError = { message in
-                activity.insert(message, at: 0)
-            }
+            voice.onFinalTranscript = { text in handleCommand(text) }
+            voice.onError = { message in activity.insert(message, at: 0) }
         }
-        .onDisappear {
-            voice.shutdown()
-        }
+        .onDisappear { voice.shutdown() }
         .alert("Mail is not available", isPresented: $showMailUnavailable) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -238,64 +279,53 @@ struct AICommandCenterView: View {
 
     @ViewBuilder
     private func conversationBubble(title: String, text: String, alignment: HorizontalAlignment) -> some View {
-        VStack(alignment: alignment, spacing: 5) {
-            Text(title)
-                .font(.caption2.weight(.bold))
-                .tracking(1)
-                .foregroundStyle(.secondary)
+        VStack(alignment: alignment, spacing: 4) {
+            Text(title).font(.caption2.weight(.bold)).tracking(1).foregroundStyle(.secondary)
             Text(text)
                 .font(.body)
                 .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
-                .padding(13)
+                .padding(12)
                 .background(Color.primary.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: 15))
         }
         .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
     }
 
     @ViewBuilder
     private func planCard(_ plan: AICommandPlan) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(plan.kind.title, systemImage: "wand.and.stars")
-                .font(.headline)
-
-            Text(plan.summary)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
+        VStack(alignment: .leading, spacing: 11) {
+            Label(plan.kind.title, systemImage: "wand.and.stars").font(.headline)
+            Text(plan.summary).font(.subheadline).foregroundStyle(.secondary)
             if case let .emailDraft(recipient, subject, body) = plan.kind {
                 VStack(alignment: .leading, spacing: 7) {
                     Text("TO  \(recipient)").font(.caption.weight(.bold))
                     Text("SUBJECT  \(subject)").font(.caption.weight(.semibold))
-                    Text(body).font(.footnote).foregroundStyle(.secondary).lineLimit(5)
+                    Text(body).font(.footnote).foregroundStyle(.secondary).lineLimit(4)
                 }
-                .padding(13)
+                .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.primary.opacity(0.045))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-
+                .clipShape(RoundedRectangle(cornerRadius: 13))
                 Button {
                     openEmail(recipient: recipient, subject: subject, body: body)
                 } label: {
-                    Label("Approve & Open in Mail", systemImage: "checkmark.circle.fill")
-                        .frame(maxWidth: .infinity)
+                    Label("Approve & Open in Mail", systemImage: "checkmark.circle.fill").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
             }
         }
-        .padding(16)
+        .padding(15)
         .background(Color.blue.opacity(0.07))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.blue.opacity(0.15), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 17).stroke(Color.blue.opacity(0.15), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 17))
     }
 
     private func toggleVoice() async {
         if voice.isSpeaking {
             voice.interrupt()
-            await voice.startListening()
-        } else if voice.isListening {
-            voice.stopListening()
-        } else {
+            return
+        }
+        if !voice.isListening {
             await voice.startListening()
         }
     }
@@ -315,17 +345,33 @@ struct AICommandCenterView: View {
         command = text
         let newPlan = engine.plan(text)
         plan = newPlan
+        execute(newPlan)
+    }
 
+    private func execute(_ newPlan: AICommandPlan) {
         switch newPlan.kind {
         case .emailDraft(let recipient, _, _):
-            voice.reply = "I prepared an email to \(recipient). Review it, then say yes when you want me to open it."
+            voice.reply = "I prepared an email to \(recipient). Say yes when you want me to open Mail."
+            voice.speak(voice.reply)
         case .portfolioStatus:
-            voice.reply = "Your portfolio status command is ready. The live status is available on the Home dashboard."
+            voice.reply = "I'm checking the live portfolio systems. The latest status is on your Home dashboard."
+            voice.speak(voice.reply)
+        case .navigate(let destination, let message):
+            voice.reply = message
+            voice.speak(message)
+            route = destination
+        case .navigateHome:
+            voice.reply = "Going home."
+            voice.speak(voice.reply)
+            dismiss()
+        case .openURL(let url, let message):
+            voice.reply = message
+            voice.speak(message)
+            openURL(url)
         case .unsupported:
             voice.reply = newPlan.summary
+            voice.speak(voice.reply)
         }
-
-        voice.speak(voice.reply)
     }
 
     private func submitTypedCommand() {
@@ -341,22 +387,11 @@ struct AICommandCenterView: View {
             URLQueryItem(name: "subject", value: subject),
             URLQueryItem(name: "body", value: body)
         ]
-
-        guard let url = components.url else {
-            showMailUnavailable = true
-            return
-        }
-
-        UIApplication.shared.open(url) { success in
-            if success {
-                activity.insert("Email prepared for \(recipient)", at: 0)
-            } else {
-                showMailUnavailable = true
-            }
-        }
+        guard let url = components.url else { showMailUnavailable = true; return }
+        openURL(url)
+        activity.insert("Email prepared for \(recipient)", at: 0)
     }
 }
-
 private struct VoiceOrb: View {
     @ObservedObject var voice: VoiceConversationController
     let onTap: () -> Void
