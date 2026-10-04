@@ -221,116 +221,6 @@ private struct AICommandEngine {
         return nil
     }
 }
-@MainActor
-private final class GmailAISummaryService {
-    static let shared = GmailAISummaryService()
-
-    private let endpoint = URL(string: "https://api.openai.com/v1/responses")!
-    private let model = "gpt-6-luna"
-    private let session: URLSession = {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.waitsForConnectivity = false
-        configuration.timeoutIntervalForRequest = 18
-        configuration.timeoutIntervalForResource = 22
-        configuration.httpMaximumConnectionsPerHost = 4
-        return URLSession(configuration: configuration)
-    }()
-
-    private struct ResponseItem: Decodable {
-        let type: String
-        let content: [ContentItem]?
-    }
-
-    private struct ContentItem: Decodable {
-        let type: String
-        let text: String?
-    }
-
-    private struct ResponseEnvelope: Decodable {
-        let output: [ResponseItem]
-        var text: String {
-            var parts: [String] = []
-            for item in output {
-                guard item.type == "message", let content = item.content else { continue }
-                for part in content {
-                    if part.type == "output_text", let text = part.text { parts.append(text) }
-                }
-            }
-            return parts.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-    }
-
-    func summarize(emails: [GmailMessageSummary], question: String?) async throws -> String {
-        let apiKey = Self.loadAPIKey()
-        guard !apiKey.isEmpty else {
-            throw GmailToolError.api("OpenAI is not connected. Add your OpenAI API key in Workspace first.")
-        }
-
-        var lines: [String] = []
-        for (index, email) in emails.prefix(6).enumerated() {
-            lines.append("\(index + 1). From: \(email.sender) | Subject: \(email.subject) | Preview: \(email.snippet)")
-        }
-
-        let followUp = question.map { "\nFollow-up question: \($0)" } ?? ""
-        let prompt = """
-        You are AI Manager's email manager.
-        Summarize the user's Gmail clearly for voice playback.
-        Be concise: maximum 5 short sentences.
-        Start with the overall situation, then mention the most important messages and what each is about.
-        Mention urgency or action needed when it is obvious from the subject/preview.
-        Do not invent details that are not present.
-        Do not read long email text verbatim.
-        Email messages:
-        \(lines.joined(separator: "\n"))
-        \(followUp)
-        """
-
-        let body: [String: Any] = [
-            "model": model,
-            "input": [["role": "user", "content": prompt]],
-            "instructions": "You are a fast, concise voice assistant. Answer directly and naturally; no markdown unless needed.",
-            "max_output_tokens": 300
-        ]
-
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 18
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else { throw GmailToolError.invalidResponse }
-        guard (200...299).contains(http.statusCode) else {
-            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
-                .flatMap { ($0["error"] as? [String: Any])?["message"] as? String }
-            throw GmailToolError.api(message ?? "OpenAI returned HTTP \(http.statusCode).")
-        }
-
-        let result = try JSONDecoder().decode(ResponseEnvelope.self, from: data)
-        guard !result.text.isEmpty else { throw GmailToolError.invalidResponse }
-        return result.text
-    }
-
-    private static func loadAPIKey() -> String {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "com.shayan.commandcentre.openai",
-            kSecAttrAccount as String: "api-key",
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return "" }
-        return String(data: data, encoding: .utf8) ?? ""
-    }
-}
-private enum InteractionMode: String, CaseIterable {
-    case voice = "Voice"
-    case chat = "Chat"
-}
-
 struct AICommandCenterView: View {
     @StateObject private var voice = VoiceConversationController()
     @State private var command = ""
@@ -340,7 +230,6 @@ struct AICommandCenterView: View {
     @State private var lastEmails: [GmailMessageSummary] = []
     @State private var emailTaskInFlight = false
     @State private var route: CoreDestination?
-    @State private var interactionMode: InteractionMode = .voice
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
@@ -349,21 +238,13 @@ struct AICommandCenterView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                VStack(spacing: 4) {
-                    Text("AI MANAGER").font(.caption.weight(.bold)).tracking(1.5).foregroundStyle(.blue)
-                    Text(voice.statusText).font(.subheadline).foregroundStyle(.secondary)
-                }
-
-                Picker("Interaction", selection: $interactionMode) {
-                    ForEach(InteractionMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
+                Text("AI MANAGER")
+                    .font(.caption.weight(.bold))
+                    .tracking(1.5)
+                    .foregroundStyle(.blue)
 
                 VoiceOrb(voice: voice) { Task { await toggleVoice() } }
                     .frame(height: 280)
-                    .opacity(interactionMode == .voice ? 1 : 0.72)
 
                 if !voice.transcript.isEmpty {
                     conversationBubble(title: "YOU", text: voice.transcript, alignment: .trailing)
@@ -394,18 +275,6 @@ struct AICommandCenterView: View {
                 .background(Color.primary.opacity(0.05))
                 .clipShape(RoundedRectangle(cornerRadius: 15))
 
-                if !activity.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("ACTIVITY").font(.caption.weight(.bold)).tracking(1).foregroundStyle(.secondary)
-                        ForEach(activity.prefix(4), id: \.self) { item in
-                            Label(item, systemImage: "checkmark.circle.fill").font(.footnote)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                Text("Talk naturally • interrupt anytime • type whenever you want • AI Manager listens again after every reply")
-                    .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center)
             }
             .padding(.horizontal, 18)
             .padding(.top, 12)
@@ -420,16 +289,7 @@ struct AICommandCenterView: View {
         .task {
             voice.onFinalTranscript = { text in handleCommand(text) }
             voice.onError = { message in activity.insert(message, at: 0) }
-            if interactionMode == .voice {
-                await voice.startListening()
-            }
-        }
-        .onChange(of: interactionMode) { mode in
-            if mode == .voice {
-                Task { await voice.startListening() }
-            } else {
-                voice.stopListening()
-            }
+            await voice.startListening()
         }
         .onDisappear { voice.shutdown() }
         .alert("Mail is not available", isPresented: $showMailUnavailable) {
@@ -520,9 +380,9 @@ struct AICommandCenterView: View {
 
         let followUpWords = ["tell me more", "more about", "explain that", "what about the second", "what about the first", "which one is important", "is anything urgent"]
         if !lastEmails.isEmpty && followUpWords.contains(where: { lower.contains($0) }) {
-            voice.phaseTitle = "THINKING"
-            voice.phaseSubtitle = "Using the email context…"
-            voice.statusText = "Thinking…"
+            voice.phaseTitle = ""
+            voice.phaseSubtitle = ""
+            voice.statusText = ""
             Task { await summarizeEmails(query: "in:inbox", followUp: text) }
             return
         }
@@ -589,9 +449,9 @@ struct AICommandCenterView: View {
             return
         }
 
-        voice.phaseTitle = "READING"
-        voice.phaseSubtitle = "Checking your Gmail…"
-        voice.statusText = "Reading email…"
+        voice.phaseTitle = ""
+        voice.phaseSubtitle = ""
+        voice.statusText = ""
         do {
             let emails: [GmailMessageSummary]
             if followUp != nil && !lastEmails.isEmpty {
@@ -607,7 +467,7 @@ struct AICommandCenterView: View {
                 return
             }
 
-            let answer = try await GmailAISummaryService.shared.summarize(emails: emails, question: followUp)
+            let answer = localEmailSummary(emails: emails, followUp: followUp)
             activity.insert("Reviewed \(emails.count) Gmail messages", at: 0)
             voice.reply = answer
             voice.speak(answer)
@@ -617,6 +477,24 @@ struct AICommandCenterView: View {
             voice.speak(voice.reply)
         }
     }
+    private func localEmailSummary(emails: [GmailMessageSummary], followUp: String?) -> String {
+        let unread = emails.filter(\.isUnread).count
+        let lead = unread > 0
+            ? "\(emails.count) recent messages, including \(unread) unread."
+            : "\(emails.count) recent messages and nothing is marked unread."
+
+        let highlights = emails.prefix(3).map { email -> String in
+            let subject = email.subject.trimmingCharacters(in: .whitespacesAndNewlines)
+            let sender = email.sender.split(separator: "<").first.map(String.init)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? email.sender
+            return "\(sender) sent \(subject)."
+        }.joined(separator: " ")
+
+        if let followUp, !followUp.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "\(lead) \(highlights) I’m using the same messages for your follow-up."
+        }
+        return "\(lead) \(highlights)"
+    }
+
     private func submitTypedCommand() {
         let text = command.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
@@ -633,7 +511,7 @@ struct AICommandCenterView: View {
     }
 
     private func greetingReply() -> String {
-        "Hello! I'm your AI Manager. I'm listening. You can ask me to check email, open parts of Shayan Core, review your portfolio, or just chat with me."
+        "Hey. What do you want to do?"
     }
 
     private func isBasicAssistantCommand(_ text: String) -> Bool {
@@ -643,13 +521,13 @@ struct AICommandCenterView: View {
 
     private func basicAssistantReply(for text: String) -> String {
         if text.contains("what can you do") || text == "help" {
-            return "I'm your AI Manager. I can chat with you, read and summarize Gmail, open Shayan Core destinations, check portfolio status, prepare email drafts with approval, and guide you through tasks. More tools can be added without changing the conversation layer."
+            return "I can handle your Shayan Core tasks, email, research workflows, and whatever we add next."
         }
         if text.contains("who are you") || text.contains("what are you") {
-            return "I'm Shayan Core's AI Manager. My job is to understand what you want, keep the conversation natural, use the right app capability, and clearly tell you what I did."
+            return "I’m Shayan Core’s AI Manager. Tell me what you need."
         }
         if text.contains("thank") {
-            return "You're welcome. I'm ready for the next task."
+            return "Anytime. What’s next?"
         }
         if text.contains("repeat") || text.contains("say that again") {
             return voice.reply.isEmpty ? "I haven't said anything yet." : voice.reply
@@ -712,25 +590,8 @@ private struct VoiceOrb: View {
                         )
                         .shadow(color: .blue.opacity(active ? 0.42 : 0.24), radius: active ? 30 : 18)
 
-                    VStack(spacing: 10) {
-                        Image(systemName: voice.iconName)
-                            .font(.system(size: 40, weight: .semibold))
-                            .foregroundStyle(.white)
-
-                        VoiceWave(active: active)
-                            .frame(width: 82, height: 25)
-
-                        Text(voice.phaseTitle)
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
-
-                        Text(voice.phaseSubtitle)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.84))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .frame(maxWidth: 145)
-                    }
+                    VoiceWave(active: active)
+                        .frame(width: 88, height: 30)
                 }
                 .frame(width: 176, height: 176)
             }
@@ -777,9 +638,9 @@ private final class VoiceConversationController: NSObject, ObservableObject {
     @Published var isSpeaking = false
     @Published var transcript = ""
     @Published var reply = ""
-    @Published var statusText = "Tap the circle and start talking"
-    @Published var phaseTitle = "READY"
-    @Published var phaseSubtitle = "Voice mode listens automatically"
+    @Published var statusText = ""
+    @Published var phaseTitle = ""
+    @Published var phaseSubtitle = ""
     @Published var iconName = "mic.fill"
 
     var onFinalTranscript: ((String) -> Void)?
@@ -815,9 +676,9 @@ private final class VoiceConversationController: NSObject, ObservableObject {
             transcript = ""
             turnCommitted = false
             shouldContinueConversation = true
-            statusText = "Listening…"
-            phaseTitle = "LISTENING"
-            phaseSubtitle = "Speak naturally — I'll know when you're done"
+            statusText = ""
+            phaseTitle = ""
+            phaseSubtitle = ""
             iconName = "waveform"
             isListening = true
 
@@ -881,7 +742,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
         isSpeaking = false
         shouldContinueConversation = false
         phaseTitle = "LISTENING"
-        phaseSubtitle = "Go ahead"
+        phaseSubtitle = ""
         iconName = "waveform"
         statusText = "Listening…"
     }
@@ -894,10 +755,10 @@ private final class VoiceConversationController: NSObject, ObservableObject {
         synthesizer.stopSpeaking(at: .immediate)
         isSpeaking = true
         isListening = false
-        phaseTitle = "SPEAKING"
-        phaseSubtitle = "AI Manager is replying"
+        phaseTitle = ""
+        phaseSubtitle = ""
         iconName = "speaker.wave.2.fill"
-        statusText = "Speaking…"
+        statusText = ""
 
         do {
             try configureSpeechOutputSession()
@@ -907,7 +768,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
 
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = 0.48
+        utterance.rate = 0.53
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
         synthesizer.delegate = self
@@ -972,7 +833,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
         }
 
         phaseTitle = "THINKING"
-        phaseSubtitle = "Working on that…"
+        phaseSubtitle = ""
         iconName = "sparkles"
         statusText = "Thinking…"
         onFinalTranscript?(finalText)
@@ -980,7 +841,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
 
     private func armSilenceTimeout(initial: Bool = false) {
         silenceTask?.cancel()
-        let delay: Duration = initial ? .seconds(3.5) : .seconds(1.35)
+        let delay: Duration = initial ? .seconds(1.5) : .seconds(0.78)
         silenceTask = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
@@ -1004,10 +865,10 @@ private final class VoiceConversationController: NSObject, ObservableObject {
 
     private func setReady() {
         guard !isSpeaking else { return }
-        phaseTitle = "READY"
+        phaseTitle = ""
         phaseSubtitle = "Voice mode listens automatically"
         iconName = "mic.fill"
-        statusText = "Ready"
+        statusText = ""
     }
 
     private func configureAudioSession() throws {
@@ -1047,9 +908,9 @@ private final class VoiceConversationController: NSObject, ObservableObject {
     }
 
     private func fail(_ message: String) {
-        statusText = message
+        statusText = ""
         phaseTitle = "READY"
-        phaseSubtitle = "Tap once to try again"
+        phaseSubtitle = ""
         iconName = "mic.fill"
         onError?(message)
     }
@@ -1060,12 +921,12 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
         Task { @MainActor in
             self.isSpeaking = false
             self.phaseTitle = "READY"
-            self.phaseSubtitle = "Listening for your next request…"
+            self.phaseSubtitle = ""
             self.iconName = "mic.fill"
-            self.statusText = "Listening automatically…"
+            self.statusText = ""
 
             guard self.shouldContinueConversation else { return }
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: .milliseconds(60))
             guard self.shouldContinueConversation else { return }
             await self.startListening()
         }
