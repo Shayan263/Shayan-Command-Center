@@ -152,12 +152,18 @@ private final class ChatGPTService: ObservableObject {
                 }
             }
             if calls.isEmpty {
-                let answer = response.output
-                    .filter { $0.type == "message" }
-                    .flatMap { $0.content ?? [] }
-                    .filter { $0.type == "output_text" }
-                    .compactMap(\.text)
-                    .joined(separator: "\n")
+                var answerParts: [String] = []
+                for item in response.output {
+                    guard item.type == "message", let content = item.content else {
+                        continue
+                    }
+                    for part in content {
+                        if part.type == "output_text", let text = part.text {
+                            answerParts.append(text)
+                        }
+                    }
+                }
+                let answer = answerParts.joined(separator: "\n")
                 
                 guard !answer.isEmpty else {
                     throw ChatGPTServiceError.emptyResponse
