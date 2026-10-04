@@ -77,3 +77,65 @@ enum SecureNotesStore {
 enum AppSecurityError: Error {
     case keychain(OSStatus)
 }
+
+
+enum GeminiAPIKeyStore {
+    private static let service = "com.shayan.commandcentre.gemini"
+    private static let account = "api-key"
+
+    static func load() -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    static func save(_ key: String) throws {
+        let value = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else {
+            try delete()
+            return
+        }
+
+        let data = Data(value.utf8)
+        let query: [String: Any] = [
+            kSecClass as String,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let attributes: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+
+        let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if updateStatus == errSecItemNotFound {
+            var addQuery = query
+            addQuery.merge(attributes) { _, new in new }
+            let status = SecItemAdd(addQuery as CFDictionary, nil)
+            guard status == errSecSuccess else { throw AppSecurityError.keychain(status) }
+        } else if updateStatus != errSecSuccess {
+            throw AppSecurityError.keychain(updateStatus)
+        }
+    }
+
+    static func delete() throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw AppSecurityError.keychain(status)
+        }
+    }
+}
