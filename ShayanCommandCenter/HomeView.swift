@@ -463,14 +463,14 @@ private struct LiveDetailCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(isOnline ? "LIVE" : "OFFLINE").font(.caption.bold()).tracking(1)
-                    .foregroundStyle(isOnline ? .green : .red)
+                Text(isChecking ? "CHECKING" : (isOnline ? "LIVE" : "OFFLINE")).font(.caption.bold()).tracking(1)
+                    .foregroundStyle(isChecking ? .orange : (isOnline ? .green : .red))
                 Spacer()
-                LiveStatusIndicator(isOnline: isOnline)
+                LiveStatusIndicator(isOnline: isOnline, isChecking: isChecking)
             }
             HStack {
                 Label("Status", systemImage: "waveform.path.ecg")
-                Spacer(); Text(isOnline ? "Online" : "Unavailable").foregroundStyle(.secondary)
+                Spacer(); Text(isChecking ? "Checking…" : (isOnline ? "Online" : "Unavailable")).foregroundStyle(.secondary)
             }
             HStack {
                 Label("Response", systemImage: "speedometer")
