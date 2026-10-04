@@ -6,6 +6,7 @@ enum CoreDestination: Hashable {
     case importantLinks
     case quickActions
     case insights
+    case sentinel
     case resume
     case learning
     case protectedNotes
@@ -29,6 +30,8 @@ struct CoreDestinationView: View {
             QuickActionsView()
         case .insights:
             InsightsView()
+        case .sentinel:
+            CoreSentinelView()
         case .resume:
             ResumeBuilderPreviewView()
         case .learning:
