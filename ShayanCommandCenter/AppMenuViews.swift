@@ -1,6 +1,8 @@
 import SwiftUI
 import UIKit
 import LocalAuthentication
+import AVFoundation
+import PDFKit
 
 struct ImportantLinksView: View {
     let openExternal: (URL) -> Void
@@ -340,9 +342,201 @@ struct ResumeBuilderPreviewView: View {
 
 struct LearningHubPreviewView: View {
     var body: some View {
-        UpcomingFeatureView(icon: "graduationcap.fill", eyebrow: "UPCOMING MODULE", title: "Shayan Learning Hub",
-            description: "A personal learning system for structured study, SAP growth and long-term skill development.",
-            roadmap: ["Learning paths & goals", "SAP ABAP / S4HANA tracks", "BTP, CAP & cloud learning", "Progress & completion tracking", "Notes, resources & revision"])
+        LearningHubPDFView()
+    }
+}
+
+struct LearningHubPDFView: View {
+    var body: some View {
+        PDFDocumentView(resourceName: "AI Automations", resourceExtension: "pdf")
+            .background(Color(red: 0.025, green: 0.035, blue: 0.07))
+            .navigationTitle("AI Automations")
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct PDFDocumentView: UIViewRepresentable {
+    let resourceName: String
+    let resourceExtension: String
+
+    func makeUIView(context: Context) -> PDFView {
+        let view = PDFView()
+        view.autoScales = true
+        view.displayMode = .singlePageContinuous
+        view.displayDirection = .vertical
+        view.backgroundColor = .systemBackground
+        if let url = Bundle.main.url(forResource: resourceName, withExtension: resourceExtension),
+           let document = PDFDocument(url: url) {
+            view.document = document
+            view.usePageViewController(true, withViewOptions: nil)
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: PDFView, context: Context) {}
+}
+
+struct QRScannerScreen: View {
+    @State private var result: String?
+    @State private var cameraDenied = false
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            if cameraDenied {
+                VStack(spacing: 14) {
+                    Image(systemName: "camera.fill").font(.system(size: 42)).foregroundStyle(.blue)
+                    Text("Camera Access Needed").font(.title2.bold())
+                    Text("Enable camera access in Settings to scan QR codes.")
+                        .multilineTextAlignment(.center).foregroundStyle(.secondary)
+                    Button("Open Settings") {
+                        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                        UIApplication.shared.open(url)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(24)
+            } else if let result {
+                QRResultView(value: result) {
+                    self.result = nil
+                }
+            } else {
+                QRScannerCameraView { value in
+                    self.result = value
+                }
+                .ignoresSafeArea()
+                VStack {
+                    Spacer()
+                    Text("Point the camera at a QR code")
+                        .font(.headline)
+                        .padding(.horizontal, 18).padding(.vertical, 11)
+                        .background(.black.opacity(0.65))
+                        .clipShape(Capsule())
+                        .padding(.bottom, 28)
+                }
+            }
+        }
+        .navigationTitle("QR Scanner")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            if !granted { cameraDenied = true }
+        }
+    }
+}
+
+private struct QRResultView: View {
+    let value: String
+    let scanAgain: () -> Void
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "qrcode").font(.system(size: 52)).foregroundStyle(.blue)
+            Text("QR Result").font(.title2.bold())
+            Text(value).font(.body.monospaced()).multilineTextAlignment(.center).textSelection(.enabled)
+                .padding(16).frame(maxWidth: .infinity)
+                .background(.white.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            HStack {
+                Button("Copy") {
+                    UIPasteboard.general.string = value
+                }.buttonStyle(.bordered)
+                ShareLink(item: value) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }.buttonStyle(.bordered)
+            }
+
+            if let url = URL(string: value), url.scheme == "https" {
+                Button {
+                    openURL(url)
+                } label: {
+                    Label("Open Secure Link", systemImage: "arrow.up.right")
+                        .frame(maxWidth: .infinity).padding(.vertical, 13)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            Button("Scan Again", action: scanAgain)
+                .padding(.top, 4)
+        }
+        .padding(22)
+    }
+}
+
+private struct QRScannerCameraView: UIViewControllerRepresentable {
+    let onCode: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCode: onCode)
+    }
+
+    func makeUIViewController(context: Context) -> ScannerViewController {
+        let controller = ScannerViewController()
+        controller.onCode = context.coordinator.handle
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: ScannerViewController, context: Context) {}
+
+    final class Coordinator {
+        let onCode: (String) -> Void
+        init(onCode: @escaping (String) -> Void) { self.onCode = onCode }
+        func handle(_ value: String) { onCode(value) }
+    }
+}
+
+private final class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
+    private let session = AVCaptureSession()
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+    var onCode: ((String) -> Void)?
+    private var hasScanned = false
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+        configure()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        previewLayer?.frame = view.bounds
+    }
+
+    private func configure() {
+        guard let device = AVCaptureDevice.default(for: .video),
+              let input = try? AVCaptureDeviceInput(device: device),
+              session.canAddInput(input) else { return }
+        session.addInput(input)
+
+        let output = AVCaptureMetadataOutput()
+        guard session.canAddOutput(output) else { return }
+        session.addOutput(output)
+        output.setMetadataObjectsDelegate(self, queue: .main)
+        output.metadataObjectTypes = [.qr]
+
+        let layer = AVCaptureVideoPreviewLayer(session: session)
+        layer.videoGravity = .resizeAspectFill
+        view.layer.insertSublayer(layer, at: 0)
+        previewLayer = layer
+        session.startRunning()
+    }
+
+    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        guard !hasScanned,
+              let object = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
+              let value = object.stringValue,
+              !value.isEmpty else { return }
+        hasScanned = true
+        session.stopRunning()
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        onCode?(value)
+    }
+
+    deinit {
+        if session.isRunning { session.stopRunning() }
     }
 }
 
