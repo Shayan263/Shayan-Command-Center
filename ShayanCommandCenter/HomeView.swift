@@ -143,6 +143,48 @@ struct HomeView: View {
                         }
                         .buttonStyle(.plain)
 
+                        NavigationLink(value: CoreDestination.workspace) {
+                            HStack(spacing: 13) {
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.purple, .blue],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    Image(systemName: "terminal.fill")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                }
+                                .frame(width: 56, height: 56)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("WORKSPACE")
+                                        .font(.headline.weight(.bold))
+                                        .tracking(0.7)
+                                    Text("ChatGPT-powered coding & agent work")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(12)
+                            .background(Color.purple.opacity(0.07))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(Color.purple.opacity(0.15), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                        }
+                        .buttonStyle(.plain)
+
                         if isOffline {
                             HStack(spacing: 9) {
                                 Image(systemName: "wifi.slash")
@@ -640,6 +682,8 @@ struct CommandSidebar: View {
                 VStack(alignment: .leading, spacing: 6) {
                     SidebarSectionTitle("PROFILE")
                     NavigationLink(value: CoreDestination.profile) { SidebarLabel(title: "My Profile", subtitle: "Professional identity & skills", icon: "person.crop.circle.fill") }.buttonStyle(.plain)
+                    SidebarSectionTitle("WORKSPACE")
+                    NavigationLink(value: CoreDestination.workspace) { SidebarLabel(title: "Workspace", subtitle: "ChatGPT + code work", icon: "terminal.fill") }.buttonStyle(.plain)
                     SidebarSectionTitle("COMMAND")
                     NavigationLink(value: CoreDestination.coreCommand) { SidebarLabel(title: "Core Command", subtitle: "Search your Core actions", icon: "magnifyingglass") }.buttonStyle(.plain)
                     NavigationLink(value: CoreDestination.quickActions) { SidebarLabel(title: "Quick Actions", subtitle: "Open, copy & share", icon: "bolt.fill") }.buttonStyle(.plain)
