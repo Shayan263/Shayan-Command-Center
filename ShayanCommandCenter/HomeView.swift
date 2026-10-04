@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 private struct BrowserDestination: Identifiable {
     let id = UUID()
@@ -234,7 +235,7 @@ private struct CompactLiveCard: View {
             HStack(spacing: 5) {
                 Circle().fill(isOnline ? Color.green : Color.red).frame(width: 6, height: 6)
                 Text(isOnline ? "LIVE" : "OFFLINE").font(.caption2.bold())
-                if let response { Text("•").foregroundStyle(.secondary); Text("(response) ms").font(.caption2).foregroundStyle(.secondary) }
+                if let response { Text("•").foregroundStyle(.secondary); Text("\(response) ms").font(.caption2).foregroundStyle(.secondary) }
             }
         }
         .frame(maxWidth: .infinity, minHeight: 124, alignment: .leading)
