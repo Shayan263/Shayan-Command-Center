@@ -578,3 +578,19 @@ private struct UpcomingFeatureView: View {
         .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
     }
 }
+
+
+private struct StatusPill: View {
+    let isOnline: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle().fill(isOnline ? Color.green : Color.red).frame(width: 7, height: 7)
+            Text(isOnline ? "LIVE" : "OFFLINE").font(.caption2.bold()).tracking(0.8)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .background((isOnline ? Color.green : Color.red).opacity(0.10))
+        .foregroundStyle(isOnline ? .green : .red)
+        .clipShape(Capsule())
+    }
+}
