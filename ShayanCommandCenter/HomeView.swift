@@ -50,6 +50,7 @@ private final class WebsiteStatus: ObservableObject {
 
 struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @State private var lastSyncDate: Date?
     @StateObject private var dashboardStatus = DashboardStatus()
     @StateObject private var websiteStatus = WebsiteStatus(url: URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
     @State private var showSideMenu = false
@@ -87,6 +88,43 @@ struct HomeView: View {
                         }
 
                         CommandPulse(status: dashboardStatus)
+
+                        if isOffline {
+                            HStack(spacing: 10) {
+                                Image(systemName: "wifi.slash")
+                                    .font(.headline.weight(.semibold))
+                                    .foregroundStyle(.red)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("You are offline")
+                                        .font(.subheadline.weight(.bold))
+                                    Text("Live status is unavailable. Showing the last sync time.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .padding(14)
+                            .background(Color.red.opacity(0.08))
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.18), lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+
+                        HStack(spacing: 8) {
+                            Image(systemName: "pin.fill")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                            Text("Last sync")
+                                .font(.caption.weight(.semibold))
+                            Spacer()
+                            Text(lastSyncText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.primary.opacity(0.045))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
 
                         NavigationLink(value: CoreDestination.sentinel) {
                             HStack(spacing: 13) {
@@ -264,10 +302,20 @@ struct HomeView: View {
         }
     }
 
+    private var isOffline: Bool {
+        !dashboardStatus.isChecking && !dashboardStatus.isOnline && !websiteStatus.isChecking && !websiteStatus.isOnline
+    }
+
+    private var lastSyncText: String {
+        guard let lastSyncDate else { return "Not synced yet" }
+        return lastSyncDate.formatted(date: .omitted, time: .shortened)
+    }
+
     private func refreshStatuses() async {
         async let dashboard: Void = dashboardStatus.check()
         async let website: Void = websiteStatus.check()
         _ = await (dashboard, website)
+        lastSyncDate = Date()
     }
 }
 
