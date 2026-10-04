@@ -2,7 +2,6 @@ import SwiftUI
 
 // Core Sentinel security intelligence surface.
 struct CoreSentinelView: View {
-    @AppStorage("appLockEnabled") private var appLockEnabled = false
     @StateObject private var dashboardStatus = DashboardStatus()
 
     private var systemSecure: Bool {
@@ -62,13 +61,6 @@ struct CoreSentinelView: View {
                         .font(.caption.weight(.bold))
                         .tracking(1.2)
                         .foregroundStyle(.secondary)
-
-                    SentinelSignalRow(
-                        title: "App Protection",
-                        subtitle: appLockEnabled ? "Face ID / passcode protection enabled" : "App lock is currently disabled",
-                        icon: appLockEnabled ? "lock.shield.fill" : "lock.open",
-                        isHealthy: appLockEnabled
-                    )
 
                     SentinelSignalRow(
                         title: "Portfolio Endpoint",
