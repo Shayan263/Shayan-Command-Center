@@ -2,6 +2,7 @@ import SwiftUI
 
 enum CoreDestination: Hashable {
     case coreCommand
+    case aiCommandCenter
     case profile
     case quickActions
     case insights
@@ -21,6 +22,8 @@ struct CoreDestinationView: View {
         switch destination {
         case .coreCommand:
             CoreCommandView()
+        case .aiCommandCenter:
+            AICommandCenterView()
         case .profile:
             ProfileView()
         case .quickActions:
