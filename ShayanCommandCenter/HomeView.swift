@@ -8,7 +8,6 @@ private struct BrowserDestination: Identifiable {
 struct HomeView: View {
     @Environment(\.openURL) private var openURL
     @StateObject private var status = DashboardStatus()
-    @StateObject private var reminderStore = ReminderStore()
     @State private var showSideMenu = false
     @State private var navigationPath: [CoreDestination] = []
     @State private var browserDestination: BrowserDestination?
@@ -47,8 +46,6 @@ struct HomeView: View {
                         }
 
                         CommandPulse(status: status)
-
-                        CoreOverviewCard(reminderStore: reminderStore, navigationPath: $navigationPath)
 
                         DashboardCard(status: status) {
                             browserDestination = BrowserDestination(url: dashboardURL)
@@ -122,9 +119,6 @@ struct HomeView: View {
                 default:
                     break
                 }
-            }
-            .onAppear {
-                reminderStore.reload()
             }
             .task { await status.check() }
             .refreshable { await status.check() }
@@ -223,11 +217,6 @@ private struct CommandSidebar: View {
                     .buttonStyle(.plain)
 
                     SidebarSectionTitle("PERSONAL")
-
-                    NavigationLink(value: CoreDestination.reminders) {
-                        SidebarLabel(title: "Smart Reminders", subtitle: "Schedule & manage reminders", icon: "bell.badge")
-                    }
-                    .buttonStyle(.plain)
 
                     NavigationLink(value: CoreDestination.protectedNotes) {
                         SidebarLabel(title: "Protected Notes", subtitle: "Secure Keychain notes", icon: "lock.text")
@@ -518,149 +507,6 @@ private struct ShayanCoreMark: View {
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
-    }
-}
-
-private struct CoreOverviewCard: View {
-    @ObservedObject var reminderStore: ReminderStore
-    @Binding var navigationPath: [CoreDestination]
-    @State private var showAddReminder = false
-    @State private var reminderTitle = ""
-    @State private var reminderDate = Date().addingTimeInterval(3600)
-    @State private var reminderError: String?
-
-    private var upcoming: [CoreReminder] {
-        reminderStore.reminders
-            .filter { !$0.isCompleted && $0.date >= Date() }
-            .sorted { $0.date < $1.date }
-    }
-
-    private var todayCount: Int {
-        reminderStore.reminders.filter {
-            Calendar.current.isDateInToday($0.date) && !$0.isCompleted
-        }.count
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("CORE OVERVIEW")
-                        .font(.caption.weight(.bold))
-                        .tracking(1.1)
-                        .foregroundStyle(.secondary)
-                    Text(upcoming.first?.title ?? "You're all caught up")
-                        .font(.title3.bold())
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                Image(systemName: upcoming.isEmpty ? "checkmark.circle.fill" : "bell.badge.fill")
-                    .font(.title2)
-                    .foregroundStyle(upcoming.isEmpty ? .green : .blue)
-            }
-
-            if let next = upcoming.first {
-                HStack(spacing: 10) {
-                    Image(systemName: "clock")
-                        .foregroundStyle(.blue)
-                    Text(next.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-                    Text("\(todayCount) today")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-            } else {
-                Text("No pending reminders. Add one from Smart Reminders.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 10) {
-                Button {
-                    navigationPath.append(.reminders)
-                } label: {
-                    Label("Reminders", systemImage: "bell.badge")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(CoreActionButtonStyle())
-
-                Button {
-                    showAddReminder = true
-                } label: {
-                    Label("Add Reminder", systemImage: "plus")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(CoreActionButtonStyle())
-            }
-        }
-        .padding(18)
-        .sheet(isPresented: $showAddReminder) {
-            NavigationStack {
-                Form {
-                    Section("Reminder") {
-                        TextField("What do you need to remember?", text: $reminderTitle)
-                            .textInputAutocapitalization(.sentences)
-                        DatePicker("When", selection: $reminderDate, in: Date()...)
-                    }
-                    Section {
-                        Button("Schedule Reminder") {
-                            let trimmed = reminderTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                            guard !trimmed.isEmpty else { return }
-                            Task {
-                                do {
-                                    try await reminderStore.add(title: trimmed, date: reminderDate)
-                                    reminderTitle = ""
-                                    reminderDate = Date().addingTimeInterval(3600)
-                                    showAddReminder = false
-                                } catch {
-                                    reminderError = error.localizedDescription
-                                }
-                            }
-                        }
-                        .disabled(reminderTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                }
-                .navigationTitle("New Reminder")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { showAddReminder = false }
-                    }
-                }
-            }
-            .presentationDetents([.medium])
-        }
-        .alert("Reminder Not Scheduled", isPresented: Binding(
-            get: { reminderError != nil },
-            set: { if !$0 { reminderError = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(reminderError ?? "")
-        }
-        .background(.white.opacity(0.055))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(.white.opacity(0.09), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-    }
-}
-
-private struct CoreActionButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
-            .background(.white.opacity(configuration.isPressed ? 0.13 : 0.07))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
