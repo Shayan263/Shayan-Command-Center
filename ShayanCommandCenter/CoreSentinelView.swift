@@ -1,5 +1,6 @@
 import SwiftUI
 
+// Core Sentinel security intelligence surface.
 struct CoreSentinelView: View {
     @AppStorage("appLockEnabled") private var appLockEnabled = false
     @StateObject private var dashboardStatus = DashboardStatus()
