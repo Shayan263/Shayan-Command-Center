@@ -62,6 +62,8 @@ struct CoreCommandView: View {
 
 private enum AICommandKind {
     case emailDraft(recipient: String, subject: String, body: String)
+    case connectGmail
+    case emailSummary(query: String)
     case portfolioStatus
     case navigate(CoreDestination, String)
     case navigateHome
@@ -71,6 +73,8 @@ private enum AICommandKind {
     var title: String {
         switch self {
         case .emailDraft: return "Email draft"
+        case .connectGmail: return "Connect Gmail"
+        case .emailSummary: return "Email summary"
         case .portfolioStatus: return "Portfolio status"
         case .navigate: return "Opening Shayan Core"
         case .navigateHome: return "Going Home"
@@ -98,7 +102,17 @@ private struct AICommandEngine {
 
         if let action = routeAction(lower) { return action }
 
+        if lower.contains("connect gmail") || lower.contains("connect my gmail") {
+            return AICommandPlan(kind: .connectGmail, summary: "I'll connect your Gmail with read-only access.", requiresApproval: false)
+        }
+
         if lower.contains("email") || lower.contains("mail") {
+            let readWords = ["check my email", "check my emails", "read my email", "read my emails", "unread", "latest emails", "recent emails", "summarize my email", "summarize my emails", "what are my emails about", "what's in my email", "inbox", "what did i get"]
+            if readWords.contains(where: { lower.contains($0) }) {
+                let query = lower.contains("unread") ? "in:inbox is:unread" : "in:inbox"
+                return AICommandPlan(kind: .emailSummary(query: query), summary: "I'll read the latest Gmail messages and give you the important points.", requiresApproval: false)
+            }
+
             let recipient = extractEmail(from: text) ?? ""
             let subject = extractSubject(from: text)
             let body = extractBody(from: text) ?? text
