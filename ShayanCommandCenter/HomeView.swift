@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Network
 
 
 private struct BrowserDestination: Identifiable {
@@ -51,6 +52,7 @@ private final class WebsiteStatus: ObservableObject {
 struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var lastSyncDate: Date?
+    @StateObject private var networkMonitor = NetworkMonitor()
     @StateObject private var dashboardStatus = DashboardStatus()
     @StateObject private var websiteStatus = WebsiteStatus(url: URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
     @State private var showSideMenu = false
@@ -76,124 +78,102 @@ struct HomeView: View {
                 Color(.systemBackground).ignoresSafeArea()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 14) {
                         HStack(spacing: 12) {
-                            ShayanCoreMark(size: 44)
+                            ShayanCoreMark(size: 42)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("SHAYAN CORE").font(.caption.weight(.bold)).tracking(1.4).foregroundStyle(.blue)
-                                Text(greeting).font(.title2.bold())
-                                Text("Your personal digital core").font(.caption).foregroundStyle(.secondary)
+                                Text("SHAYAN CORE")
+                                    .font(.caption.weight(.bold))
+                                    .tracking(1.4)
+                                    .foregroundStyle(.blue)
+                                Text(greeting)
+                                    .font(.title2.bold())
                             }
                             Spacer()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(networkMonitor.isConnected ? "ONLINE" : "OFFLINE")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .tracking(0.8)
+                                    .foregroundStyle(networkMonitor.isConnected ? .green : .red)
+                                Text(lastSyncText)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
-
-                        CommandPulse(status: dashboardStatus)
 
                         NavigationLink(value: CoreDestination.aiCommandCenter) {
                             HStack(spacing: 13) {
-                                Image(systemName: "sparkles")
-                                    .font(.title2.weight(.semibold))
-                                    .foregroundStyle(.blue)
-                                    .frame(width: 44, height: 44)
-                                    .background(.blue.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 13))
-                                VStack(alignment: .leading, spacing: 3) {
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.blue, .cyan],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    Image(systemName: "waveform")
+                                        .font(.system(size: 25, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                }
+                                .frame(width: 64, height: 64)
+                                .shadow(color: .blue.opacity(0.22), radius: 12)
+
+                                VStack(alignment: .leading, spacing: 4) {
                                     Text("AI COMMAND CENTRE")
                                         .font(.headline.weight(.bold))
-                                        .tracking(0.8)
-                                    Text("Command tasks and automate workflows")
+                                        .tracking(0.7)
+                                    Text("Tap once. Talk naturally. Shayan Core listens, thinks and replies.")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                        .lineLimit(2)
                                 }
                                 Spacer()
-                                Image(systemName: "arrow.up.right")
+                                Image(systemName: "chevron.right")
                                     .font(.caption.weight(.bold))
                                     .foregroundStyle(.secondary)
                             }
-                            .padding(15)
-                            .background(Color.blue.opacity(0.07))
-                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.blue.opacity(0.16), lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .padding(12)
+                            .background(Color.blue.opacity(0.075))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(Color.blue.opacity(0.16), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                         }
                         .buttonStyle(.plain)
 
                         if isOffline {
-                            HStack(spacing: 10) {
+                            HStack(spacing: 9) {
                                 Image(systemName: "wifi.slash")
-                                    .font(.headline.weight(.semibold))
+                                    .font(.subheadline.weight(.bold))
                                     .foregroundStyle(.red)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("You are offline")
-                                        .font(.subheadline.weight(.bold))
-                                    Text("Live status is unavailable. Showing the last sync time.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
+                                Text("You are offline. Live data will refresh automatically when the connection returns.")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Spacer(minLength: 0)
                             }
-                            .padding(14)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
                             .background(Color.red.opacity(0.08))
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.18), lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 13)
+                                    .stroke(Color.red.opacity(0.16), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 13))
                         }
 
-                        HStack(spacing: 8) {
-                            Image(systemName: "pin.fill")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.secondary)
-                            Text("Last sync")
-                                .font(.caption.weight(.semibold))
-                            Spacer()
-                            Text(lastSyncText)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.primary.opacity(0.045))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.08), lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        CommandPulse(status: dashboardStatus)
 
-                        NavigationLink(value: CoreDestination.sentinel) {
-                            HStack(spacing: 13) {
-                                Image(systemName: "shield.checkered")
-                                    .font(.title2.weight(.semibold))
-                                    .foregroundStyle(.blue)
-                                    .frame(width: 44, height: 44)
-                                    .background(.blue.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 13))
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("CORE SENTINEL")
-                                        .font(.headline.weight(.bold))
-                                        .tracking(0.8)
-                                    Text("AI Security Intelligence")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Spacer()
-
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(dashboardStatus.isChecking ? Color.orange : (dashboardStatus.isOnline ? Color.green : Color.red))
-                                        .frame(width: 7, height: 7)
-                                    Text(dashboardStatus.isChecking ? "CHECKING" : (dashboardStatus.isOnline ? "SYSTEM SECURE" : "ATTENTION"))
-                                        .font(.system(size: 8, weight: .bold))
-                                        .tracking(0.5)
-                                        .foregroundStyle(dashboardStatus.isChecking ? .orange : (dashboardStatus.isOnline ? .green : .red))
-                                }
-                            }
-                            .padding(15)
-                            .background(Color.primary.opacity(0.045))
-                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.primary.opacity(0.07), lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
-                        }
-                        .buttonStyle(.plain)
-
-                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                        LazyVGrid(
+                            columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
+                            spacing: 10
+                        ) {
                             NavigationLink {
-                                DashboardDetailView(status: dashboardStatus, openExternal: { browserDestination = BrowserDestination(url: $0) })
+                                DashboardDetailView(
+                                    status: dashboardStatus,
+                                    openExternal: { browserDestination = BrowserDestination(url: $0) }
+                                )
                             } label: {
                                 CompactLiveCard(
                                     title: "Dashboard",
@@ -207,7 +187,10 @@ struct HomeView: View {
                             .buttonStyle(.plain)
 
                             NavigationLink {
-                                WebsiteDetailView(status: websiteStatus, openExternal: { browserDestination = BrowserDestination(url: $0) })
+                                WebsiteDetailView(
+                                    status: websiteStatus,
+                                    openExternal: { browserDestination = BrowserDestination(url: $0) }
+                                )
                             } label: {
                                 CompactLiveCard(
                                     title: "Website",
@@ -220,9 +203,7 @@ struct HomeView: View {
                             }
                             .buttonStyle(.plain)
 
-                            NavigationLink {
-                                LearningHubPreviewView()
-                            } label: {
+                            NavigationLink { LearningHubPreviewView() } label: {
                                 CompactAppCard(
                                     title: "Learning Hub",
                                     subtitle: "AI Automations",
@@ -231,39 +212,25 @@ struct HomeView: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                        }
 
-                        NavigationLink {
-                            QRScannerScreen()
-                        } label: {
-                            VStack(spacing: 10) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.primary.opacity(0.06))
-                                        .frame(width: 108, height: 108)
-                                    Circle()
-                                        .stroke(Color.blue.opacity(0.45), lineWidth: 2)
-                                        .frame(width: 108, height: 108)
-                                    Image(systemName: "qrcode.viewfinder")
-                                        .font(.system(size: 48, weight: .semibold))
-                                        .foregroundStyle(.blue)
-                                }
-                                Text("Scan QR")
-                                    .font(.headline.weight(.bold))
-                                Text("Scan, copy, share or open a secure link")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            NavigationLink(value: CoreDestination.sentinel) {
+                                CompactAppCard(
+                                    title: "Core Sentinel",
+                                    subtitle: "Security intelligence",
+                                    icon: "shield.checkered",
+                                    badge: "SECURE"
+                                )
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            .background(Color.primary.opacity(0.045))
-                            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.primary.opacity(0.08), lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 22))
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
 
                         NavigationLink { ResumeBuilderPreviewView() } label: {
-                            ModuleRow(title: "Shayan Resume Builder", subtitle: "Build & tailor professional resumes", icon: "doc.text.magnifyingglass", badge: "SOON")
+                            ModuleRow(
+                                title: "Shayan Resume Builder",
+                                subtitle: "Build & tailor professional resumes",
+                                icon: "doc.text.magnifyingglass",
+                                badge: "SOON"
+                            )
                         }
                         .buttonStyle(.plain)
 
@@ -274,16 +241,51 @@ struct HomeView: View {
                             .multilineTextAlignment(.center)
                             .padding(.top, 2)
                     }
-                    .padding(18)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 92)
                 }
 
-                if showSideMenu {
-                    Color.black.opacity(0.48).ignoresSafeArea().onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.22)) { showSideMenu = false }
+                VStack {
+                    Spacer()
+                    NavigationLink {
+                        QRScannerScreen()
+                    } label: {
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 27, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 62, height: 62)
+                            .background(
+                                Circle().fill(
+                                    LinearGradient(
+                                        colors: [.blue, .cyan],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            )
+                            .overlay(Circle().stroke(.white.opacity(0.28), lineWidth: 1))
+                            .shadow(color: .black.opacity(0.28), radius: 14, y: 7)
                     }
-                    CommandSidebar(isPresented: $showSideMenu, openExternal: { url in
-                        browserDestination = BrowserDestination(url: url)
-                    })
+                    .accessibilityLabel("Scan QR code")
+                    .padding(.bottom, 18)
+                }
+                .frame(maxWidth: .infinity)
+                .zIndex(1)
+
+                if showSideMenu {
+                    Color.black.opacity(0.48)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.22)) { showSideMenu = false }
+                        }
+
+                    CommandSidebar(
+                        isPresented: $showSideMenu,
+                        openExternal: { url in
+                            browserDestination = BrowserDestination(url: url)
+                        }
+                    )
                     .frame(width: 292)
                     .transition(.move(edge: .leading))
                     .zIndex(2)
@@ -295,30 +297,42 @@ struct HomeView: View {
                         withAnimation(.easeInOut(duration: 0.22)) { showSideMenu.toggle() }
                     } label: {
                         Image(systemName: showSideMenu ? "xmark" : "ellipsis")
-                            .font(.title3.weight(.semibold)).frame(minWidth: 36, minHeight: 36)
+                            .font(.title3.weight(.semibold))
+                            .frame(minWidth: 36, minHeight: 36)
                     }
                     .accessibilityLabel(showSideMenu ? "Close command sidebar" : "Open command sidebar")
                 }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(value: CoreDestination.coreCommand) {
-                        Image(systemName: "magnifyingglass").font(.body.weight(.semibold))
+                        Image(systemName: "magnifyingglass")
+                            .font(.body.weight(.semibold))
                             .frame(minWidth: 36, minHeight: 36)
                     }
                     .accessibilityLabel("Open Core Command")
                 }
             }
             .navigationDestination(for: CoreDestination.self) {
-                CoreDestinationView(destination: $0, openExternal: { browserDestination = BrowserDestination(url: $0) })
+                CoreDestinationView(
+                    destination: $0,
+                    openExternal: { browserDestination = BrowserDestination(url: $0) }
+                )
             }
             .onOpenURL { url in
                 guard url.scheme == "shayan-core" else { return }
                 if url.host == "command" { navigationPath = [.coreCommand] }
             }
             .task {
+                networkMonitor.start()
+                try? await Task.sleep(for: .milliseconds(1600))
                 await refreshStatuses()
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
+                Task { await refreshStatuses() }
+            }
+            .onChange(of: networkMonitor.isConnected) { _, connected in
+                guard connected else { return }
                 Task { await refreshStatuses() }
             }
             .refreshable {
@@ -331,7 +345,7 @@ struct HomeView: View {
     }
 
     private var isOffline: Bool {
-        !dashboardStatus.isChecking && !dashboardStatus.isOnline && !websiteStatus.isChecking && !websiteStatus.isOnline
+        !networkMonitor.isConnected
     }
 
     private var lastSyncText: String {
@@ -340,10 +354,36 @@ struct HomeView: View {
     }
 
     private func refreshStatuses() async {
+        guard networkMonitor.isConnected else { return }
         async let dashboard: Void = dashboardStatus.check()
         async let website: Void = websiteStatus.check()
         _ = await (dashboard, website)
         lastSyncDate = Date()
+    }
+}
+
+
+@MainActor
+final class NetworkMonitor: ObservableObject {
+    @Published private(set) var isConnected = true
+
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "com.shayan.commandcentre.network")
+    private var started = false
+
+    func start() {
+        guard !started else { return }
+        started = true
+        monitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor in
+                self?.isConnected = path.status == .satisfied
+            }
+        }
+        monitor.start(queue: queue)
+    }
+
+    deinit {
+        monitor.cancel()
     }
 }
 
