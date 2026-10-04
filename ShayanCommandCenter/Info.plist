@@ -24,6 +24,8 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID is used to protect access to your Shayan Core.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Shayan Core uses the camera to scan QR codes.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
