@@ -141,17 +141,20 @@ struct HomeView: View {
 
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
-                                Text("MODULES").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(.secondary)
+                                Text("LIVE").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(.secondary)
                                 Spacer()
-                                Text("EXPLORE").font(.caption2.weight(.bold)).foregroundStyle(.blue)
+                                Text("ACTIVE").font(.caption2.weight(.bold)).foregroundStyle(.green)
                             }
-
-                            NavigationLink { ResumeBuilderPreviewView() } label: {
-                                ModuleRow(title: "Shayan Resume Builder", subtitle: "Build & tailor professional resumes", icon: "doc.text.magnifyingglass", badge: "SOON")
-                            }.buttonStyle(.plain)
 
                             NavigationLink { LearningHubPreviewView() } label: {
                                 ModuleRow(title: "Shayan Learning Hub", subtitle: "Open AI Automations documentation", icon: "graduationcap.fill", badge: "LIVE")
+                            }.buttonStyle(.plain)
+
+                            Text("UPCOMING").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(.secondary)
+                                .padding(.top, 4)
+
+                            NavigationLink { ResumeBuilderPreviewView() } label: {
+                                ModuleRow(title: "Shayan Resume Builder", subtitle: "Build & tailor professional resumes", icon: "doc.text.magnifyingglass", badge: "SOON")
                             }.buttonStyle(.plain)
                         }
 
