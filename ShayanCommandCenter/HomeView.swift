@@ -402,7 +402,7 @@ struct DashboardDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 DetailHeader(icon: "chart.xyaxis.line", title: "Portfolio Dashboard", subtitle: "Private analytics and portfolio controls")
-                LiveDetailCard(isOnline: status.isOnline, response: status.responseTimeMs, lastChecked: status.lastCheckedText)
+                LiveDetailCard(isOnline: status.isOnline, isChecking: status.isChecking, response: status.responseTimeMs, lastChecked: status.lastCheckedText)
                 DetailInfo(title: "What this does", text: "The dashboard is the deeper view behind the compact Home card. Home stays lightweight; this screen gives you the complete status and access point.")
                 Button { openExternal(url) } label: {
                     Label("Open Dashboard", systemImage: "arrow.up.right")
@@ -433,7 +433,7 @@ private struct WebsiteDetailView: View {
                 }.buttonStyle(.borderedProminent)
             }.padding(20)
         }
-        .background(Color(red: 0.025, green: 0.035, blue: 0.07))
+        .background(Color(.systemBackground))
         .navigationTitle("Website").navigationBarTitleDisplayMode(.inline)
         .task { await status.check() }
         .refreshable { await status.check() }
@@ -457,6 +457,7 @@ private struct DetailHeader: View {
 
 private struct LiveDetailCard: View {
     let isOnline: Bool
+    let isChecking: Bool
     let response: Int?
     let lastChecked: String
     var body: some View {
@@ -547,7 +548,7 @@ struct CommandSidebar: View {
         }
         .frame(maxHeight: .infinity)
         .background(Color(.secondarySystemBackground))
-        .overlay(alignment: .trailing) { Rectangle().fill(.white.opacity(0.08)).frame(width: 1) }
+        .overlay(alignment: .trailing) { Rectangle().fill(Color.primary.opacity(0.08)).frame(width: 1) }
         .ignoresSafeArea(edges: .vertical)
         .shadow(color: .black.opacity(0.35), radius: 24, x: 10, y: 0)
     }
@@ -585,7 +586,7 @@ private struct CommandPulse: View {
     @ObservedObject var status: DashboardStatus
     var body: some View {
         HStack(spacing: 11) {
-            LiveStatusIndicator(isOnline: status.isOnline)
+            LiveStatusIndicator(isOnline: status.isOnline, isChecking: status.isChecking)
             VStack(alignment: .leading, spacing: 2) {
                 Text(status.isOnline ? "Everything looks good" : "Attention required").font(.subheadline.weight(.semibold))
                 Text(status.isOnline ? "Portfolio systems are online" : "Portfolio dashboard is unavailable").font(.caption).foregroundStyle(.secondary)
