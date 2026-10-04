@@ -1,50 +1,5 @@
 import Foundation
-import LocalAuthentication
 import Security
-
-enum AppSecurity {
-    static func authenticate() async throws {
-        let context = LAContext()
-        context.localizedCancelTitle = "Cancel"
-
-        var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
-            throw map(error)
-        }
-
-        let success = try await context.evaluatePolicy(
-            .deviceOwnerAuthentication,
-            localizedReason: "Unlock access to your protected Shayan Core data."
-        )
-
-        guard success else {
-            throw AppSecurityError.failed
-        }
-    }
-
-    static func biometricType() -> LABiometryType {
-        let context = LAContext()
-        var error: NSError?
-        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
-        return context.biometryType
-    }
-
-    private static func map(_ error: NSError?) -> AppSecurityError {
-        guard let error else { return .unavailable }
-        switch LAError.Code(rawValue: error.code) {
-        case .biometryNotEnrolled:
-            return .biometryNotEnrolled
-        case .biometryNotAvailable:
-            return .biometryUnavailable
-        case .biometryLockout:
-            return .biometryLockedOut
-        case .passcodeNotSet:
-            return .passcodeNotSet
-        default:
-            return .authentication(error.localizedDescription)
-        }
-    }
-}
 
 enum SecureNotesStore {
     static func loadAsync() async -> String {
@@ -120,12 +75,5 @@ enum SecureNotesStore {
 }
 
 enum AppSecurityError: Error {
-    case unavailable
-    case failed
-    case biometryNotEnrolled
-    case biometryUnavailable
-    case biometryLockedOut
-    case passcodeNotSet
-    case authentication(String)
     case keychain(OSStatus)
 }
