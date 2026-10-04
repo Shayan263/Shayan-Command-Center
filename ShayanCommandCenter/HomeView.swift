@@ -89,6 +89,34 @@ struct HomeView: View {
 
                         CommandPulse(status: dashboardStatus)
 
+                        NavigationLink(value: CoreDestination.aiCommandCenter) {
+                            HStack(spacing: 13) {
+                                Image(systemName: "sparkles")
+                                    .font(.title2.weight(.semibold))
+                                    .foregroundStyle(.blue)
+                                    .frame(width: 44, height: 44)
+                                    .background(.blue.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 13))
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("AI COMMAND CENTRE")
+                                        .font(.headline.weight(.bold))
+                                        .tracking(0.8)
+                                    Text("Command tasks and automate workflows")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(15)
+                            .background(Color.blue.opacity(0.07))
+                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.blue.opacity(0.16), lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
+                        .buttonStyle(.plain)
+
                         if isOffline {
                             HStack(spacing: 10) {
                                 Image(systemName: "wifi.slash")
