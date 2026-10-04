@@ -37,7 +37,7 @@
 		A0000000000000000000001C /* CoreCommandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreCommandView.swift; sourceTree = "<group>"; };
 		A0000000000000000000001E /* InAppBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppBrowserView.swift; sourceTree = "<group>"; };
 		A0000000000000000000001F /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		C00000000000000000000002 /* AI Automations.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "AI Automations.pdf"; sourceTree = "<group>"; };
+		C00000000000000000000002 /* AI Automations.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "../LearningHub/AI Automations.pdf"; sourceTree = "<group>"; };
 		B00000000000000000000010 /* ShayanCoreWidget.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = ShayanCoreWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000011 /* ShayanCoreWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidget.swift; sourceTree = "<group>"; };
 		B00000000000000000000012 /* ShayanCoreWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShayanCoreWidgetBundle.swift; sourceTree = "<group>"; };
