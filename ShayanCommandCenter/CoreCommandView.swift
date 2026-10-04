@@ -7,7 +7,6 @@ struct CoreCommandItem: Identifiable {
     let icon: String
 
     static let all: [CoreCommandItem] = [
-        .init(id: .importantLinks, title: "Important Links", subtitle: "Website, LinkedIn and GitHub", icon: "link"),
         .init(id: .quickActions, title: "Quick Actions", subtitle: "Open, copy and share", icon: "bolt.fill"),
         .init(id: .insights, title: "Insights", subtitle: "System and portfolio status", icon: "chart.bar.xaxis"),
         .init(id: .sentinel, title: "Core Sentinel", subtitle: "AI Security Intelligence", icon: "shield.checkered"),
