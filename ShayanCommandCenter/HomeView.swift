@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 
+
 private struct BrowserDestination: Identifiable {
     let id = UUID()
     let url: URL
@@ -48,6 +49,7 @@ private final class WebsiteStatus: ObservableObject {
 }
 
 struct HomeView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var dashboardStatus = DashboardStatus()
     @StateObject private var websiteStatus = WebsiteStatus(url: URL(string: "https://shayan263.github.io/Shayan_Profile/")!)
     @State private var showSideMenu = false
@@ -70,7 +72,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack(alignment: .leading) {
-                Color(red: 0.025, green: 0.035, blue: 0.07).ignoresSafeArea()
+                Color(.systemBackground).ignoresSafeArea()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
@@ -108,22 +110,22 @@ struct HomeView: View {
 
                                 HStack(spacing: 6) {
                                     Circle()
-                                        .fill(dashboardStatus.isOnline ? Color.green : Color.orange)
+                                        .fill(dashboardStatus.isChecking ? Color.orange : (dashboardStatus.isOnline ? Color.green : Color.red))
                                         .frame(width: 7, height: 7)
-                                    Text(dashboardStatus.isOnline ? "SYSTEM SECURE" : "ATTENTION")
+                                    Text(dashboardStatus.isChecking ? "CHECKING" : (dashboardStatus.isOnline ? "SYSTEM SECURE" : "ATTENTION"))
                                         .font(.system(size: 8, weight: .bold))
                                         .tracking(0.5)
-                                        .foregroundStyle(dashboardStatus.isOnline ? .green : .orange)
+                                        .foregroundStyle(dashboardStatus.isChecking ? .orange : (dashboardStatus.isOnline ? .green : .red))
                                 }
                             }
                             .padding(15)
-                            .background(.white.opacity(0.045))
-                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.07), lineWidth: 1))
+                            .background(Color.primary.opacity(0.045))
+                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.primary.opacity(0.07), lineWidth: 1))
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                         }
                         .buttonStyle(.plain)
 
-                        HStack(spacing: 12) {
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                             NavigationLink {
                                 DashboardDetailView(status: dashboardStatus, openExternal: { browserDestination = BrowserDestination(url: $0) })
                             } label: {
@@ -132,6 +134,7 @@ struct HomeView: View {
                                     subtitle: "Portfolio analytics",
                                     icon: "chart.xyaxis.line",
                                     isOnline: dashboardStatus.isOnline,
+                                    isChecking: dashboardStatus.isChecking,
                                     response: dashboardStatus.responseTimeMs
                                 )
                             }
@@ -145,7 +148,20 @@ struct HomeView: View {
                                     subtitle: "Public portfolio",
                                     icon: "globe",
                                     isOnline: websiteStatus.isOnline,
+                                    isChecking: websiteStatus.isChecking,
                                     response: websiteStatus.responseTimeMs
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            NavigationLink {
+                                LearningHubPreviewView()
+                            } label: {
+                                CompactAppCard(
+                                    title: "Learning Hub",
+                                    subtitle: "AI Automations",
+                                    icon: "graduationcap.fill",
+                                    badge: "LIVE"
                                 )
                             }
                             .buttonStyle(.plain)
@@ -154,50 +170,43 @@ struct HomeView: View {
                         NavigationLink {
                             QRScannerScreen()
                         } label: {
-                            HStack(spacing: 13) {
-                                Image(systemName: "qrcode.viewfinder")
-                                    .font(.title2.weight(.semibold))
-                                    .foregroundStyle(.blue)
-                                    .frame(width: 44, height: 44)
-                                    .background(.blue.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 13))
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("QR Scanner").font(.headline)
-                                    Text("Scan a QR code and choose what to do with the result.")
-                                        .font(.caption).foregroundStyle(.secondary)
+                            VStack(spacing: 10) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.primary.opacity(0.06))
+                                        .frame(width: 108, height: 108)
+                                    Circle()
+                                        .stroke(Color.blue.opacity(0.45), lineWidth: 2)
+                                        .frame(width: 108, height: 108)
+                                    Image(systemName: "qrcode.viewfinder")
+                                        .font(.system(size: 48, weight: .semibold))
+                                        .foregroundStyle(.blue)
                                 }
-                                Spacer()
-                                Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+                                Text("Scan QR")
+                                    .font(.headline.weight(.bold))
+                                Text("Scan, copy, share or open a secure link")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
-                            .padding(15)
-                            .background(.white.opacity(0.045))
-                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.07), lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 20)
+                            .background(Color.primary.opacity(0.045))
+                            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 22))
                         }
                         .buttonStyle(.plain)
 
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("LIVE").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(.secondary)
-                                Spacer()
-                                Text("ACTIVE").font(.caption2.weight(.bold)).foregroundStyle(.green)
-                            }
-
-                            NavigationLink { LearningHubPreviewView() } label: {
-                                ModuleRow(title: "Shayan Learning Hub", subtitle: "Open AI Automations documentation", icon: "graduationcap.fill", badge: "LIVE")
-                            }.buttonStyle(.plain)
-
-                            Text("UPCOMING").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(.secondary)
-                                .padding(.top, 4)
-
-                            NavigationLink { ResumeBuilderPreviewView() } label: {
-                                ModuleRow(title: "Shayan Resume Builder", subtitle: "Build & tailor professional resumes", icon: "doc.text.magnifyingglass", badge: "SOON")
-                            }.buttonStyle(.plain)
+                        NavigationLink { ResumeBuilderPreviewView() } label: {
+                            ModuleRow(title: "Shayan Resume Builder", subtitle: "Build & tailor professional resumes", icon: "doc.text.magnifyingglass", badge: "SOON")
                         }
+                        .buttonStyle(.plain)
 
-                        Text("Tap a card to open the full module. Use ••• for the command sidebar.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                        Text("© 2026 Shayan Core. All rights reserved.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 2)
                     }
                     .padding(18)
                 }
@@ -240,17 +249,25 @@ struct HomeView: View {
                 if url.host == "command" { navigationPath = [.coreCommand] }
             }
             .task {
-                await dashboardStatus.check()
-                await websiteStatus.check()
+                await refreshStatuses()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await refreshStatuses() }
             }
             .refreshable {
-                await dashboardStatus.check()
-                await websiteStatus.check()
+                await refreshStatuses()
             }
         }
         .sheet(item: $browserDestination) { destination in
             InAppBrowserView(url: destination.url).ignoresSafeArea(edges: .bottom)
         }
+    }
+
+    private func refreshStatuses() async {
+        async let dashboard: Void = dashboardStatus.check()
+        async let website: Void = websiteStatus.check()
+        _ = await (dashboard, website)
     }
 }
 
@@ -259,7 +276,10 @@ private struct CompactLiveCard: View {
     let subtitle: String
     let icon: String
     let isOnline: Bool
+    let isChecking: Bool
     let response: Int?
+
+    private var statusText: String { isChecking ? "CHECKING" : (isOnline ? "LIVE" : "OFFLINE") }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -268,37 +288,78 @@ private struct CompactLiveCard: View {
                     .frame(width: 34, height: 34).background(.blue.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 Spacer()
-                LiveStatusIndicator(isOnline: isOnline)
+                LiveStatusIndicator(isOnline: isOnline, isChecking: isChecking)
             }
             Text(title).font(.headline)
             Text(subtitle).font(.caption).foregroundStyle(.secondary)
             HStack(spacing: 5) {
-                Circle().fill(isOnline ? Color.green : Color.red).frame(width: 6, height: 6)
-                Text(isOnline ? "LIVE" : "OFFLINE").font(.caption2.bold())
+                Circle().fill(isChecking ? Color.orange : (isOnline ? Color.green : Color.red)).frame(width: 6, height: 6)
+                Text(statusText).font(.caption2.bold())
                 if let response { Text("•").foregroundStyle(.secondary); Text("\(response) ms").font(.caption2).foregroundStyle(.secondary) }
             }
         }
         .frame(maxWidth: .infinity, minHeight: 124, alignment: .leading)
         .padding(14)
-        .background(.white.opacity(0.055))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.08), lineWidth: 1))
+        .background(Color.primary.opacity(0.055))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+private struct CompactAppCard: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let badge: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.headline)
+                    .foregroundStyle(.blue)
+                    .frame(width: 34, height: 34)
+                    .background(.blue.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                Spacer()
+                Text(badge)
+                    .font(.system(size: 8, weight: .bold))
+                    .tracking(0.7)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(.green.opacity(0.12))
+                    .foregroundStyle(.green)
+                    .clipShape(Capsule())
+            }
+            Text(title).font(.headline)
+            Text(subtitle).font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 5) {
+                Circle().fill(.green).frame(width: 6, height: 6)
+                Text("READY").font(.caption2.bold())
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 124, alignment: .leading)
+        .padding(14)
+        .background(Color.primary.opacity(0.045))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.primary.opacity(0.08), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 
 private struct LiveStatusIndicator: View {
     let isOnline: Bool
+    let isChecking: Bool
     @State private var pulse = false
 
     var body: some View {
         Circle()
-            .fill(isOnline ? Color.green : Color.red)
+            .fill(isChecking ? Color.orange : (isOnline ? Color.green : Color.red))
             .frame(width: 8, height: 8)
-            .scaleEffect(isOnline && pulse ? 1.65 : 1)
-            .opacity(isOnline && pulse ? 0.45 : 1)
-            .animation(isOnline ? .easeInOut(duration: 1.05).repeatForever(autoreverses: true) : .default, value: pulse)
+            .scaleEffect((isChecking || isOnline) && pulse ? 1.55 : 1)
+            .opacity((isChecking || isOnline) && pulse ? 0.45 : 1)
+            .animation((isChecking || isOnline) ? .easeInOut(duration: 1.05).repeatForever(autoreverses: true) : .default, value: pulse)
             .onAppear { pulse = true }
-            .accessibilityLabel(isOnline ? "Live" : "Offline")
+            .accessibilityLabel(isChecking ? "Checking" : (isOnline ? "Live" : "Offline"))
     }
 }
 
@@ -326,8 +387,8 @@ private struct ModuleRow: View {
             Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
         }
         .padding(13)
-        .background(.white.opacity(0.045))
-        .overlay(RoundedRectangle(cornerRadius: 17).stroke(.white.opacity(0.07), lineWidth: 1))
+        .background(Color.primary.opacity(0.045))
+        .overlay(RoundedRectangle(cornerRadius: 17).stroke(Color.primary.opacity(0.07), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 17))
     }
 }
@@ -349,7 +410,7 @@ struct DashboardDetailView: View {
                 }.buttonStyle(.borderedProminent)
             }.padding(20)
         }
-        .background(Color(red: 0.025, green: 0.035, blue: 0.07))
+        .background(Color(.systemBackground))
         .navigationTitle("Dashboard").navigationBarTitleDisplayMode(.inline)
         .task { await status.check() }
         .refreshable { await status.check() }
@@ -419,8 +480,8 @@ private struct LiveDetailCard: View {
                 Spacer(); Text(lastChecked).foregroundStyle(.secondary)
             }
         }
-        .padding(17).background(.white.opacity(0.05))
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.08), lineWidth: 1))
+        .padding(17).background(Color.primary.opacity(0.05))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.primary.opacity(0.08), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
@@ -433,7 +494,7 @@ private struct DetailInfo: View {
             Text(title).font(.headline)
             Text(text).font(.body).foregroundStyle(.secondary)
         }
-        .padding(17).background(.white.opacity(0.04))
+        .padding(17).background(Color.primary.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
@@ -452,7 +513,7 @@ struct CommandSidebar: View {
                 Spacer()
                 Button { withAnimation(.easeInOut(duration: 0.22)) { isPresented = false } } label: {
                     Image(systemName: "xmark").font(.caption.weight(.bold))
-                        .frame(width: 32, height: 32).background(.white.opacity(0.07)).clipShape(Circle())
+                        .frame(width: 32, height: 32).background(Color.primary.opacity(0.07)).clipShape(Circle())
                 }
             }
             .padding(20)
@@ -486,7 +547,7 @@ struct CommandSidebar: View {
             }.padding(20)
         }
         .frame(maxHeight: .infinity)
-        .background(Color(red: 0.035, green: 0.045, blue: 0.085))
+        .background(Color(.secondarySystemBackground))
         .overlay(alignment: .trailing) { Rectangle().fill(.white.opacity(0.08)).frame(width: 1) }
         .ignoresSafeArea(edges: .vertical)
         .shadow(color: .black.opacity(0.35), radius: 24, x: 10, y: 0)
@@ -535,8 +596,8 @@ private struct CommandPulse: View {
                 .foregroundStyle(status.isOnline ? .green : .red)
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
-        .background(.white.opacity(0.045))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.07), lineWidth: 1))
+        .background(Color.primary.opacity(0.045))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.07), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
