@@ -1,5 +1,7 @@
 import SwiftUI
 import UIKit
+import AVFoundation
+import Speech
 
 struct CoreCommandItem: Identifiable {
     let id: CoreDestination
