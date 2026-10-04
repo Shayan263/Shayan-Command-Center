@@ -3,6 +3,127 @@ import UIKit
 import AVFoundation
 import Speech
 
+
+private enum AIChatRole: String, Codable {
+    case user
+    case manager
+}
+
+private struct AIChatMessage: Identifiable, Codable, Equatable {
+    let id: UUID
+    let role: AIChatRole
+    let text: String
+    let date: Date
+
+    init(role: AIChatRole, text: String) {
+        id = UUID()
+        self.role = role
+        self.text = text
+        date = Date()
+    }
+}
+
+private struct AIChatSession: Identifiable, Codable, Equatable {
+    let id: UUID
+    var title: String
+    let createdAt: Date
+    var updatedAt: Date
+    var messages: [AIChatMessage]
+
+    init(title: String = "New conversation") {
+        id = UUID()
+        self.title = title
+        createdAt = Date()
+        updatedAt = Date()
+        messages = []
+    }
+}
+
+@MainActor
+private final class AIChatHistory: ObservableObject {
+    static let shared = AIChatHistory()
+
+    @Published private(set) var sessions: [AIChatSession]
+    @Published private(set) var currentSessionID: UUID
+
+    private let fileURL: URL
+
+    var currentMessages: [AIChatMessage] {
+        sessions.first(where: { $0.id == currentSessionID })?.messages ?? []
+    }
+
+    private init() {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("ShayanCore", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        fileURL = directory.appendingPathComponent("ai_manager_chats.json")
+
+        if let data = try? Data(contentsOf: fileURL),
+           let saved = try? JSONDecoder().decode([AIChatSession].self, from: data),
+           !saved.isEmpty {
+            sessions = saved
+            if let storedID = UserDefaults.standard.string(forKey: "shayan.aiManager.currentChatID"),
+               let id = UUID(uuidString: storedID),
+               saved.contains(where: { $0.id == id }) {
+                currentSessionID = id
+            } else {
+                currentSessionID = saved.first!.id
+            }
+        } else {
+            let first = AIChatSession()
+            sessions = [first]
+            currentSessionID = first.id
+        }
+    }
+
+    func append(_ role: AIChatRole, text: String) {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty, let index = sessions.firstIndex(where: { $0.id == currentSessionID }) else { return }
+
+        sessions[index].messages.append(AIChatMessage(role: role, text: value))
+        sessions[index].updatedAt = Date()
+        if role == .user && sessions[index].title == "New conversation" {
+            sessions[index].title = Self.title(from: value)
+        }
+        save()
+    }
+
+    func newChat() {
+        let chat = AIChatSession()
+        sessions.insert(chat, at: 0)
+        currentSessionID = chat.id
+        save()
+    }
+
+    func select(_ session: AIChatSession) {
+        currentSessionID = session.id
+        save()
+    }
+
+    func delete(_ session: AIChatSession) {
+        guard sessions.count > 1 else { return }
+        sessions.removeAll { $0.id == session.id }
+        if !sessions.contains(where: { $0.id == currentSessionID }) {
+            currentSessionID = sessions.first!.id
+        }
+        save()
+    }
+
+    private func save() {
+        UserDefaults.standard.set(currentSessionID.uuidString, forKey: "shayan.aiManager.currentChatID")
+        guard let data = try? JSONEncoder().encode(sessions) else { return }
+        try? data.write(to: fileURL, options: [.atomic, .completeFileProtection])
+    }
+
+    private static func title(from text: String) -> String {
+        let cleaned = text.replacingOccurrences(of: "\n", with: " ")
+            .split(whereSeparator: { $0.isWhitespace })
+            .prefix(7)
+            .joined(separator: " ")
+        return cleaned.isEmpty ? "New conversation" : String(cleaned)
+    }
+}
+
 struct CoreCommandItem: Identifiable {
     let id: CoreDestination
     let title: String
