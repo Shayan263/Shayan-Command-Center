@@ -316,7 +316,7 @@ struct DashboardDetailView: View {
     }
 }
 
-struct WebsiteDetailView: View {
+private struct WebsiteDetailView: View {
     @ObservedObject var status: WebsiteStatus
     let openExternal: (URL) -> Void
 
