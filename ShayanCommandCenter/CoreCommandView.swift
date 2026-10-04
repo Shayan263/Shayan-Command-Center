@@ -140,14 +140,13 @@ struct AICommandCenterView: View {
     @State private var plan: AICommandPlan?
     @State private var activity: [String] = []
     @State private var showMailUnavailable = false
-    @State private var pulse = false
 
     private let engine = AICommandEngine()
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 22) {
-                VStack(spacing: 7) {
+            VStack(spacing: 18) {
+                VStack(spacing: 6) {
                     Text("AI COMMAND CENTRE")
                         .font(.caption.weight(.bold))
                         .tracking(1.5)
@@ -159,73 +158,21 @@ struct AICommandCenterView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                ZStack {
-                    Circle()
-                        .fill(.blue.opacity(0.06))
-                        .frame(width: 280, height: 280)
-                        .scaleEffect(voice.isListening ? (pulse ? 1.08 : 0.94) : 1)
-                        .animation(
-                            voice.isListening
-                                ? .easeInOut(duration: 1.05).repeatForever(autoreverses: true)
-                                : .easeOut(duration: 0.25),
-                            value: pulse
-                        )
-
-                    Circle()
-                        .stroke(.blue.opacity(voice.isListening ? 0.35 : 0.12), lineWidth: 2)
-                        .frame(width: 222, height: 222)
-                        .scaleEffect(voice.isListening ? (pulse ? 1.06 : 0.96) : 1)
-                        .animation(
-                            voice.isListening
-                                ? .easeInOut(duration: 0.85).repeatForever(autoreverses: true)
-                                : .easeOut(duration: 0.25),
-                            value: pulse
-                        )
-
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.blue, .cyan],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: .blue.opacity(0.28), radius: 28)
-
-                        Circle()
-                            .stroke(.white.opacity(0.3), lineWidth: 1)
-
-                        VStack(spacing: 10) {
-                            Image(systemName: voice.iconName)
-                                .font(.system(size: 42, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .symbolEffect(.pulse, isActive: voice.isListening || voice.isSpeaking)
-
-                            Text(voice.phaseTitle)
-                                .font(.headline.weight(.semibold))
-                                .foregroundStyle(.white)
-
-                            Text(voice.phaseSubtitle)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.82))
-                        }
-                    }
-                    .frame(width: 170, height: 170)
+                VoiceOrb(voice: voice) {
+                    Task { await toggleVoice() }
                 }
-                .frame(maxWidth: .infinity)
-                .contentShape(Circle())
-                .onTapGesture {
-                    Task { await toggleListening() }
-                }
+                .frame(height: 310)
 
                 Button {
-                    Task { await toggleListening() }
+                    Task { await toggleVoice() }
                 } label: {
-                    Label(voice.isListening ? "Stop Listening" : "Tap to Talk", systemImage: voice.isListening ? "stop.fill" : "mic.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                    Label(
+                        voice.isListening ? "Listening — tap to stop" : (voice.isSpeaking ? "Tap to interrupt" : "Tap to talk"),
+                        systemImage: voice.isListening ? "waveform" : (voice.isSpeaking ? "hand.raised.fill" : "mic.fill")
+                    )
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
 
@@ -241,14 +188,12 @@ struct AICommandCenterView: View {
                     planCard(plan)
                 }
 
-                TextField("Or type a command…", text: $command, axis: .vertical)
+                TextField("Type a command if you prefer…", text: $command, axis: .vertical)
                     .textFieldStyle(.plain)
                     .padding(14)
                     .background(Color.primary.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .onSubmit {
-                        submitTypedCommand()
-                    }
+                    .onSubmit { submitTypedCommand() }
 
                 if !activity.isEmpty {
                     VStack(alignment: .leading, spacing: 9) {
@@ -264,16 +209,16 @@ struct AICommandCenterView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Text("Voice is handled on-device. Actions remain approval-first.")
+                Text("Hands-free conversation • voice interruption • automatic turn-taking • approval-first actions")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
             }
             .padding(20)
         }
         .navigationTitle("AI Command Centre")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            pulse = true
             voice.onFinalTranscript = { text in
                 handleCommand(text)
             }
@@ -282,7 +227,7 @@ struct AICommandCenterView: View {
             }
         }
         .onDisappear {
-            voice.stopListening()
+            voice.shutdown()
         }
         .alert("Mail is not available", isPresented: $showMailUnavailable) {
             Button("OK", role: .cancel) {}
@@ -344,8 +289,11 @@ struct AICommandCenterView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
-    private func toggleListening() async {
-        if voice.isListening {
+    private func toggleVoice() async {
+        if voice.isSpeaking {
+            voice.interrupt()
+            await voice.startListening()
+        } else if voice.isListening {
             voice.stopListening()
         } else {
             await voice.startListening()
@@ -405,6 +353,397 @@ struct AICommandCenterView: View {
             } else {
                 showMailUnavailable = true
             }
+        }
+    }
+}
+
+private struct VoiceOrb: View {
+    @ObservedObject var voice: VoiceConversationController
+    let onTap: () -> Void
+    @State private var ringRotation = 0.0
+    @State private var pulse = false
+
+    private var active: Bool { voice.isListening || voice.isSpeaking }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(.blue.opacity(active ? 0.08 : 0.045))
+                .frame(width: 292, height: 292)
+                .scaleEffect(active ? (pulse ? 1.04 : 0.94) : 1)
+
+            Circle()
+                .stroke(
+                    LinearGradient(colors: [.cyan.opacity(0.7), .blue.opacity(0.12), .cyan.opacity(0.7)],
+                                   startPoint: .leading,
+                                   endPoint: .trailing),
+                    lineWidth: 3
+                )
+                .frame(width: 248, height: 248)
+                .rotationEffect(.degrees(ringRotation))
+
+            Circle()
+                .stroke(.blue.opacity(active ? 0.35 : 0.12), lineWidth: 2)
+                .frame(width: 216, height: 216)
+                .scaleEffect(active ? (pulse ? 1.05 : 0.96) : 1)
+
+            Button(action: onTap) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.blue, .cyan],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: .blue.opacity(active ? 0.42 : 0.24), radius: active ? 30 : 18)
+
+                    VStack(spacing: 10) {
+                        Image(systemName: voice.iconName)
+                            .font(.system(size: 40, weight: .semibold))
+                            .foregroundStyle(.white)
+
+                        VoiceWave(active: active)
+                            .frame(width: 82, height: 25)
+
+                        Text(voice.phaseTitle)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+
+                        Text(voice.phaseSubtitle)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.84))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .frame(maxWidth: 145)
+                    }
+                }
+                .frame(width: 176, height: 176)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("AI Command Centre voice control")
+        }
+        .contentShape(Circle())
+        .onAppear {
+            withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+                ringRotation = 360
+            }
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                pulse = true
+            }
+        }
+        .animation(.easeInOut(duration: 0.8), value: active)
+    }
+}
+
+private struct VoiceWave: View {
+    let active: Bool
+    @State private var phase = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<9, id: \.self) { index in
+                Capsule()
+                    .fill(.white.opacity(active ? 0.9 : 0.42))
+                    .frame(width: 4, height: active ? (phase ? CGFloat(7 + (index % 4) * 4) : CGFloat(8 + ((8 - index) % 4) * 4)) : 7)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
+                phase = true
+            }
+        }
+    }
+}
+
+@MainActor
+private final class VoiceConversationController: NSObject, ObservableObject {
+    @Published var isListening = false
+    @Published var isSpeaking = false
+    @Published var transcript = ""
+    @Published var reply = ""
+    @Published var statusText = "Tap the circle and start talking"
+    @Published var phaseTitle = "READY"
+    @Published var phaseSubtitle = "Tap once and speak naturally"
+    @Published var iconName = "mic.fill"
+
+    var onFinalTranscript: ((String) -> Void)?
+    var onError: ((String) -> Void)?
+
+    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    private let audioEngine = AVAudioEngine()
+    private let synthesizer = AVSpeechSynthesizer()
+    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    private var recognitionTask: SFSpeechRecognitionTask?
+    private var silenceTask: Task<Void, Never>?
+    private var turnCommitted = false
+    private var hasAuthorized = false
+    private var shouldContinueConversation = true
+
+    func startListening() async {
+        if isSpeaking {
+            interrupt()
+        }
+        guard !isListening else { return }
+
+        let authorized = await ensurePermissions()
+        guard authorized else { return }
+
+        guard speechRecognizer?.isAvailable != false else {
+            fail("Speech recognition is temporarily unavailable.")
+            return
+        }
+
+        do {
+            try configureAudioSession()
+
+            transcript = ""
+            turnCommitted = false
+            shouldContinueConversation = true
+            statusText = "Listening…"
+            phaseTitle = "LISTENING"
+            phaseSubtitle = "Speak naturally — no stop button needed"
+            iconName = "waveform"
+            isListening = true
+
+            recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+            guard let recognitionRequest else { return }
+            recognitionRequest.shouldReportPartialResults = true
+            recognitionRequest.taskHint = .dictation
+
+            recognitionTask?.cancel()
+            recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+                Task { @MainActor in
+                    guard let self else { return }
+
+                    if let result {
+                        self.transcript = result.bestTranscription.formattedString
+                        self.armSilenceTimeout()
+
+                        if result.isFinal {
+                            self.commitTurn()
+                        }
+                    }
+
+                    if error != nil, self.isListening, !self.turnCommitted {
+                        self.commitTurn()
+                    }
+                }
+            }
+
+            let inputNode = audioEngine.inputNode
+            let format = inputNode.outputFormat(forBus: 0)
+            inputNode.removeTap(onBus: 0)
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+                self?.recognitionRequest?.append(buffer)
+            }
+
+            audioEngine.prepare()
+            try audioEngine.start()
+            armSilenceTimeout(initial: true)
+        } catch {
+            stopListening()
+            fail("I couldn't start the microphone.")
+        }
+    }
+
+    func stopListening() {
+        shouldContinueConversation = false
+        silenceTask?.cancel()
+        silenceTask = nil
+        endRecognition()
+        setReady()
+    }
+
+    func interrupt() {
+        synthesizer.stopSpeaking(at: .immediate)
+        isSpeaking = false
+        shouldContinueConversation = false
+        phaseTitle = "LISTENING"
+        phaseSubtitle = "Go ahead"
+        iconName = "waveform"
+        statusText = "Listening…"
+    }
+
+    func speak(_ text: String) {
+        silenceTask?.cancel()
+        endRecognition()
+        shouldContinueConversation = true
+
+        synthesizer.stopSpeaking(at: .immediate)
+        isSpeaking = true
+        isListening = false
+        phaseTitle = "SPEAKING"
+        phaseSubtitle = "Shayan Core is replying"
+        iconName = "speaker.wave.2.fill"
+        statusText = "Speaking…"
+
+        do {
+            try configureAudioSession()
+        } catch {
+            onError?("Audio output could not be configured.")
+        }
+
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = 0.48
+        utterance.pitchMultiplier = 1.0
+        synthesizer.delegate = self
+        synthesizer.speak(utterance)
+    }
+
+    func shutdown() {
+        shouldContinueConversation = false
+        silenceTask?.cancel()
+        silenceTask = nil
+        synthesizer.stopSpeaking(at: .immediate)
+        endRecognition()
+    }
+
+    private func ensurePermissions() async -> Bool {
+        if !hasAuthorized {
+            let speechStatus: SFSpeechRecognizerAuthorizationStatus
+            switch SFSpeechRecognizer.authorizationStatus() {
+            case .authorized:
+                speechStatus = .authorized
+            case .notDetermined:
+                speechStatus = await requestSpeechAuthorization()
+            default:
+                speechStatus = SFSpeechRecognizer.authorizationStatus()
+            }
+
+            guard speechStatus == .authorized else {
+                fail("Speech recognition permission is required.")
+                return false
+            }
+
+            let recordPermission = AVAudioSession.sharedInstance().recordPermission
+            let microphoneGranted: Bool
+            if recordPermission == .undetermined {
+                microphoneGranted = await requestMicrophonePermission()
+            } else {
+                microphoneGranted = recordPermission == .granted
+            }
+
+            guard microphoneGranted else {
+                fail("Microphone permission is required.")
+                return false
+            }
+
+            hasAuthorized = true
+        }
+        return true
+    }
+
+    private func commitTurn() {
+        guard !turnCommitted else { return }
+        turnCommitted = true
+        silenceTask?.cancel()
+        silenceTask = nil
+
+        let finalText = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        endRecognition()
+
+        guard !finalText.isEmpty else {
+            setReady()
+            return
+        }
+
+        phaseTitle = "THINKING"
+        phaseSubtitle = "Working on that…"
+        iconName = "sparkles"
+        statusText = "Thinking…"
+        onFinalTranscript?(finalText)
+    }
+
+    private func armSilenceTimeout(initial: Bool = false) {
+        silenceTask?.cancel()
+        let delay: Duration = initial ? .seconds(4.5) : .seconds(2.0)
+        silenceTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self?.commitTurn()
+            }
+        }
+    }
+
+    private func endRecognition() {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        recognitionRequest = nil
+        isListening = false
+    }
+
+    private func setReady() {
+        guard !isSpeaking else { return }
+        phaseTitle = "READY"
+        phaseSubtitle = "Tap once and speak naturally"
+        iconName = "mic.fill"
+        statusText = "Ready"
+    }
+
+    private func configureAudioSession() throws {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(
+            .playAndRecord,
+            mode: .voiceChat,
+            options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP, .duckOthers]
+        )
+        try session.setActive(true, options: .notifyOthersOnDeactivation)
+    }
+
+    private func requestSpeechAuthorization() async -> SFSpeechRecognizerAuthorizationStatus {
+        await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status)
+            }
+        }
+    }
+
+    private func requestMicrophonePermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
+        }
+    }
+
+    private func fail(_ message: String) {
+        statusText = message
+        phaseTitle = "READY"
+        phaseSubtitle = "Tap once to try again"
+        iconName = "mic.fill"
+        onError?(message)
+    }
+}
+
+extension VoiceConversationController: AVSpeechSynthesizerDelegate {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.isSpeaking = false
+            self.phaseTitle = "READY"
+            self.phaseSubtitle = "Listening for your next request…"
+            self.iconName = "mic.fill"
+            self.statusText = "Listening automatically…"
+
+            guard self.shouldContinueConversation else { return }
+            try? await Task.sleep(for: .milliseconds(250))
+            guard self.shouldContinueConversation else { return }
+            await self.startListening()
+        }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.isSpeaking = false
         }
     }
 }
