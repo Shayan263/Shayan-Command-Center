@@ -667,7 +667,7 @@ struct CommandSidebar: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("SHAYAN CORE").font(.caption.weight(.bold)).tracking(1.4).foregroundStyle(.blue)
-                    Text("Command Center").font(.title2.bold())
+                    Text("AI Manager").font(.title2.bold())
                 }
                 Spacer()
                 Button { withAnimation(.easeInOut(duration: 0.22)) { isPresented = false } } label: {
