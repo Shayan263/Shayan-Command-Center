@@ -3,56 +3,28 @@ import WidgetKit
 
 struct ShayanCoreWidgetEntry: TimelineEntry {
     let date: Date
-    let nextReminder: SharedReminderRecord?
-    let todayCount: Int
 }
 
 struct ShayanCoreWidgetProvider: TimelineProvider {
     func placeholder(in context: Context) -> ShayanCoreWidgetEntry {
-        ShayanCoreWidgetEntry(
-            date: Date(),
-            nextReminder: SharedReminderRecord(
-                id: UUID(),
-                title: "Review your priorities",
-                date: Date().addingTimeInterval(3600),
-                isCompleted: false
-            ),
-            todayCount: 1
-        )
+        ShayanCoreWidgetEntry(date: Date())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ShayanCoreWidgetEntry) -> Void) {
-        completion(makeEntry())
+        completion(ShayanCoreWidgetEntry(date: Date()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<ShayanCoreWidgetEntry>) -> Void) {
-        let entry = makeEntry()
-        completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(900))))
-    }
-
-    private func makeEntry() -> ShayanCoreWidgetEntry {
-        let reminders = CoreReminderStorage.load([SharedReminderRecord].self) ?? []
-        let upcoming = reminders
-            .filter { !$0.isCompleted && $0.date >= Date() }
-            .sorted { $0.date < $1.date }
-
-        let calendar = Calendar.current
-        let todayCount = upcoming.filter { calendar.isDateInToday($0.date) }.count
-
-        return ShayanCoreWidgetEntry(
-            date: Date(),
-            nextReminder: upcoming.first,
-            todayCount: todayCount
-        )
+        let entry = ShayanCoreWidgetEntry(date: Date())
+        completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(1800))))
     }
 }
 
 struct ShayanCoreWidgetView: View {
     let entry: ShayanCoreWidgetEntry
-    @Environment(\.widgetFamily) private var family: WidgetFamily
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "circle.hexagongrid.fill")
                     .foregroundStyle(.cyan)
@@ -62,56 +34,18 @@ struct ShayanCoreWidgetView: View {
                 Spacer()
             }
 
-            if let reminder = entry.nextReminder {
-                Text("NEXT REMINDER")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
+            Text("Command Center")
+                .font(.title3.bold())
 
-                Text(reminder.title)
-                    .font(.headline)
-                    .lineLimit(family == .systemSmall ? 2 : 1)
+            Text("Your personal digital core")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
-                Text(reminder.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            Spacer()
 
-                HStack(spacing: 8) {
-                    Button(intent: CompleteNextReminderAction()) {
-                        Label("Done", systemImage: "checkmark")
-                            .font(.caption2.weight(.bold))
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Link(destination: URL(string: "shayan-core://reminders")!) {
-                        Image(systemName: "bell")
-                            .font(.caption.weight(.semibold))
-                    }
-                }
-            } else {
-                Text("All clear")
-                    .font(.title3.bold())
-
-                Text("No upcoming reminders")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Link(destination: URL(string: "shayan-core://reminders")!) {
-                    Label("Add reminder", systemImage: "plus")
-                        .font(.caption.weight(.semibold))
-                }
-            }
-
-            if family == .systemMedium {
-                HStack {
-                    Text("\(entry.todayCount) today")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Link(destination: URL(string: "shayan-core://command")!) {
-                        Label("Core Command", systemImage: "command")
-                            .font(.caption2.weight(.semibold))
-                    }
-                }
+            Link(destination: URL(string: "shayan-core://command")!) {
+                Label("Open Core Command", systemImage: "command")
+                    .font(.caption.weight(.semibold))
             }
         }
         .invalidatableContent()
@@ -129,7 +63,7 @@ struct ShayanCoreWidget: Widget {
             ShayanCoreWidgetView(entry: entry)
         }
         .configurationDisplayName("Shayan Core")
-        .description("Your reminders and Core Command, right on the Home Screen.")
+        .description("Quick access to your Shayan Core Command Center.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
