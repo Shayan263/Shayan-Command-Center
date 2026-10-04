@@ -525,7 +525,6 @@ struct CommandSidebar: View {
                     NavigationLink(value: CoreDestination.profile) { SidebarLabel(title: "My Profile", subtitle: "Professional identity & skills", icon: "person.crop.circle.fill") }.buttonStyle(.plain)
                     SidebarSectionTitle("COMMAND")
                     NavigationLink(value: CoreDestination.coreCommand) { SidebarLabel(title: "Core Command", subtitle: "Search your Core actions", icon: "magnifyingglass") }.buttonStyle(.plain)
-                    NavigationLink(value: CoreDestination.importantLinks) { SidebarLabel(title: "Important Links", subtitle: "Website, LinkedIn & GitHub", icon: "link") }.buttonStyle(.plain)
                     NavigationLink(value: CoreDestination.quickActions) { SidebarLabel(title: "Quick Actions", subtitle: "Open, copy & share", icon: "bolt.fill") }.buttonStyle(.plain)
                     NavigationLink(value: CoreDestination.insights) { SidebarLabel(title: "Insights", subtitle: "System & portfolio status", icon: "chart.bar.xaxis") }.buttonStyle(.plain)
                     SidebarSectionTitle("SECURITY")
