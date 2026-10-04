@@ -216,6 +216,11 @@ private struct AICommandPlan {
     let requiresApproval: Bool
 }
 
+private enum AIPendingEmailStage {
+    case recipient
+    case body(recipient: String)
+}
+
 private struct AICommandEngine {
     private let dashboardURL = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
     private let websiteURL = URL(string: "https://shayan263.github.io/Shayan_Profile/")!
@@ -270,12 +275,12 @@ private struct AICommandEngine {
 
             let recipient = extractEmail(from: text) ?? ""
             guard !recipient.isEmpty else {
-                return AICommandPlan(kind: .unsupported, summary: "I can draft that. I just need the recipient's email address.", requiresApproval: false)
+                return AICommandPlan(kind: .conversationReply("Sure. Who should I send it to? Please give me the recipient's email address."), summary: "Clarification needed for the email recipient.", requiresApproval: false)
             }
 
             let body = extractBody(from: text) ?? ""
             guard !body.isEmpty else {
-                return AICommandPlan(kind: .unsupported, summary: "I have the recipient. Tell me what you want the email to say.", requiresApproval: false)
+                return AICommandPlan(kind: .conversationReply("I have the recipient. What would you like me to say in the email?"), summary: "Clarification needed for the email message.", requiresApproval: false)
             }
 
             let subject = extractSubject(from: text, body: body)
@@ -301,6 +306,34 @@ private struct AICommandEngine {
             return AICommandPlan(kind: .conversationReply(basicAssistantReply(for: lower)), summary: "Conversation", requiresApproval: false)
         }
 
+        // Continue the user's current task from conversation context instead of
+        // treating every turn as a brand-new command.
+        if let pendingEmail = pendingEmailStage(history: history) {
+            switch pendingEmail {
+            case .recipient:
+                if let recipient = extractEmail(from: text) {
+                    return AICommandPlan(
+                        kind: .conversationReply("Got it — I'll use (recipient). What would you like the email to say?"),
+                        summary: "Email recipient captured.",
+                        requiresApproval: false
+                    )
+                }
+                return AICommandPlan(
+                    kind: .conversationReply("I can continue the email, but I still need the recipient's email address. Which email address should I use?"),
+                    summary: "Clarification needed for the email recipient.",
+                    requiresApproval: false
+                )
+
+            case .body(let recipient):
+                let subject = extractSubject(from: text, body: text)
+                return AICommandPlan(
+                    kind: .emailDraft(recipient: recipient, subject: subject, body: text),
+                    summary: "I understood that as the email message. I'll wait for your approval before opening Mail.",
+                    requiresApproval: true
+                )
+            }
+        }
+
         if !history.isEmpty && (lower.contains("what did we") || lower.contains("continue") || lower.contains("remember")) {
             let recent = history.suffix(6)
                 .map { "\($0.role == .user ? "You" : "AI Manager"): \($0.text)" }
@@ -313,6 +346,28 @@ private struct AICommandEngine {
             summary: "I understand the request, but I don't have a local capability mapped to it yet. Give me the task in your own words; I won't require a fixed sequence.",
             requiresApproval: false
         )
+    }
+
+    private func pendingEmailStage(history: [AIChatMessage]) -> AIPendingEmailStage? {
+        let recent = history.suffix(8)
+
+        // The manager has explicitly asked for the recipient.
+        if let lastManager = recent.last(where: { $0.role == .manager }),
+           lastManager.text.localizedCaseInsensitiveContains("recipient's email address") {
+            return .recipient
+        }
+
+        // The manager has the recipient and is waiting for the message body.
+        if let lastManager = recent.last(where: { $0.role == .manager }),
+           lastManager.text.localizedCaseInsensitiveContains("what would you like the email to say") {
+            if let recipient = recent.reversed()
+                .compactMap({ $0.role == .user ? extractEmail(from: $0.text) : nil })
+                .first {
+                return .body(recipient: recipient)
+            }
+        }
+
+        return nil
     }
 
     private func routeAction(_ lower: String) -> AICommandPlan? {
@@ -498,14 +553,26 @@ struct AICommandCenterView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 16) {
+                LazyVStack(spacing: 16) {
                     Text("AI MANAGER")
                         .font(.caption.weight(.bold))
                         .tracking(1.5)
                         .foregroundStyle(.blue)
 
                     VoiceOrb(voice: voice) { Task { await toggleVoice() } }
-                        .frame(height: 280)
+                        .frame(height: 240)
+
+                    Button {
+                        Task { await toggleVoice() }
+                    } label: {
+                        Label(
+                            voice.isListening || voice.isSpeaking ? "Turn Voice Off" : "Start Voice",
+                            systemImage: voice.isListening || voice.isSpeaking ? "mic.slash.fill" : "mic.fill"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel(voice.isListening || voice.isSpeaking ? "Turn voice off" : "Start voice")
 
                     if history.currentMessages.isEmpty {
                         Text("Start with the task. No greeting or fixed sequence is required.")
@@ -550,6 +617,8 @@ struct AICommandCenterView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 24)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaPadding(.bottom, 8)
             .onChange(of: history.currentMessages.count) {
                 if let last = history.currentMessages.last {
                     withAnimation(.easeOut(duration: 0.2)) {
@@ -578,7 +647,6 @@ struct AICommandCenterView: View {
         .task {
             voice.onFinalTranscript = { text in handleCommand(text) }
             voice.onError = { _ in }
-            await voice.startListening()
         }
         .onDisappear { voice.shutdown() }
         .alert("Mail is not available", isPresented: $showMailUnavailable) {
@@ -637,8 +705,12 @@ struct AICommandCenterView: View {
     }
 
     private func toggleVoice() async {
-        if voice.isSpeaking { voice.interrupt(); return }
-        if !voice.isListening { await voice.startListening() }
+        if voice.isSpeaking || voice.isListening {
+            voice.stopListening()
+            voice.interrupt()
+            return
+        }
+        await voice.startListening()
     }
 
     private func handleCommand(_ text: String) {
@@ -1018,8 +1090,10 @@ private final class VoiceConversationController: NSObject, ObservableObject {
     private var shouldContinueConversation = true
     private var lastDeliveredTranscript = ""
     private var lastDeliveredAt = Date.distantPast
+    private var voiceModeEnabled = false
 
     func startListening() async {
+        voiceModeEnabled = true
         if isSpeaking {
             interrupt()
         }
@@ -1093,6 +1167,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
     }
 
     func stopListening() {
+        voiceModeEnabled = false
         shouldContinueConversation = false
         silenceTask?.cancel()
         silenceTask = nil
@@ -1103,11 +1178,10 @@ private final class VoiceConversationController: NSObject, ObservableObject {
     func interrupt() {
         synthesizer.stopSpeaking(at: .immediate)
         isSpeaking = false
+        voiceModeEnabled = false
         shouldContinueConversation = false
-        phaseTitle = "LISTENING"
-        phaseSubtitle = ""
-        iconName = "waveform"
-        statusText = "Listening…"
+        endRecognition()
+        setReady()
     }
 
     func speak(_ text: String) {
@@ -1139,6 +1213,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
     }
 
     func shutdown() {
+        voiceModeEnabled = false
         shouldContinueConversation = false
         silenceTask?.cancel()
         silenceTask = nil
@@ -1236,7 +1311,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
     private func setReady() {
         guard !isSpeaking else { return }
         phaseTitle = ""
-        phaseSubtitle = "Voice mode listens automatically"
+        phaseSubtitle = "Voice is off — tap Start Voice when you want to speak."
         iconName = "mic.fill"
         statusText = ""
     }
@@ -1295,9 +1370,9 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
             self.iconName = "mic.fill"
             self.statusText = ""
 
-            guard self.shouldContinueConversation else { return }
+            guard self.shouldContinueConversation, self.voiceModeEnabled else { return }
             try? await Task.sleep(for: .milliseconds(60))
-            guard self.shouldContinueConversation else { return }
+            guard self.shouldContinueConversation, self.voiceModeEnabled else { return }
             await self.startListening()
         }
     }
