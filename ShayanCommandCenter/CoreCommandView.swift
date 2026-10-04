@@ -99,6 +99,7 @@ private struct AICommandEngine {
     func plan(_ input: String) -> AICommandPlan {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let lower = text.lowercased()
+        AIManagerContext.shared.observe(text)
 
         if let action = routeAction(lower) { return action }
 
@@ -328,210 +329,60 @@ private final class GmailAISummaryService {
 }
 
 @MainActor
-private final class AIManagerLearningStore {
-    static let shared = AIManagerLearningStore()
-
-    private let key = "shayan.aiManager.communicationProfile"
-    private let defaults = UserDefaults.standard
-
-    private(set) var profile: String = ""
-
-    private init() {
-        profile = defaults.string(forKey: key) ?? ""
-    }
+private final class AIManagerContext {
+    static let shared = AIManagerContext()
+    private var recentTurns: [String] = []
+    private(set) var learnedPreferences: [String] = []
 
     func observe(_ text: String) {
+        recentTurns.append(text)
+        recentTurns = Array(recentTurns.suffix(8))
         let lower = text.lowercased()
-        var signals: [String] = []
-
-        if lower.contains("short") || lower.contains("brief") || lower.contains("quick") || lower.contains("straight to the point") {
-            signals.append("Prefer concise, direct answers.")
-        }
-        if lower.contains("explain more") || lower.contains("more detail") || lower.contains("deep dive") {
-            signals.append("When asked, provide more detail and reasoning.")
-        }
-        if lower.contains("just do it") || lower.contains("go ahead") {
-            signals.append("When an authorized action is clear, avoid unnecessary confirmation questions.")
-        }
-        if lower.contains("don't ask") || lower.contains("dont ask") {
-            signals.append("Avoid unnecessary clarification questions; use available context first.")
-        }
-
-        guard !signals.isEmpty else { return }
-        var current = profile.split(separator: "\n").map(String.init)
-        for signal in signals where !current.contains(signal) {
-            current.append(signal)
-        }
-        current = Array(current.suffix(8))
-        profile = current.joined(separator: "\n")
-        defaults.set(profile, forKey: key)
-    }
-}
-
-private struct AIManagerTurn: Codable {
-    let role: String
-    let text: String
-}
-
-@MainActor
-private final class AIManagerService {
-    static let shared = AIManagerService()
-
-    private let endpoint = URL(string: "https://api.openai.com/v1/responses")!
-    private let model = "gpt-6-luna"
-    private let session: URLSession = {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.waitsForConnectivity = false
-        configuration.timeoutIntervalForRequest = 15
-        configuration.timeoutIntervalForResource = 18
-        configuration.httpMaximumConnectionsPerHost = 4
-        return URLSession(configuration: configuration)
-    }()
-
-    private var turns: [AIManagerTurn] = []
-
-    private let masterPrompt = """
-    You are AI Manager, Shayan's professional, context-aware personal AI manager.
-
-    ROLE
-    Help Shayan with professional and career tasks, SAP ABAP/S/4HANA, portfolio and recruiter content, resume/LinkedIn work, learning, productivity, research, and general questions. Be useful, practical and conversational.
-
-    GITHUB RESTRICTION — ABSOLUTE
-    You have no GitHub write authority. Never create, delete, modify or push repositories, branches, files, commits, pull requests, issues, workflows, deployments, releases, tags, settings, secrets, permissions, collaborators or webhooks. GitHub may only be read/analyzed/recommended. You may draft code or patches in conversation, but never claim they were written to GitHub.
-
-    PORTFOLIO CONTEXT
-    Shayan is an SAP ABAP developer with S/4HANA implementation experience. Relevant technologies may include ABAP on HANA, OData, CDS, RAP, BTP, CPI, Fiori, RICEFW, IDocs, BAPIs, RFCs, BAdIs, User Exits, Enhancements, VOFM and Output Determination; business processes may include P2P, O2C, R2R, MM, SD, FI/FICO, TM, MDG and IBP. Treat these as possible context only. Never assume Shayan used a technology, client, project, metric, certification or responsibility unless it is established in the conversation or supplied source material.
-
-    NO FABRICATION
-    Never invent skills, certifications, projects, clients, responsibilities, metrics, go-lives, titles, dates or achievements. Clearly separate facts from opinions and recommendations.
-
-    RECRUITER-FIRST THINKING
-    For portfolio, resume and LinkedIn work, optimize for recruiter readability, technical clarity, business context, ATS compatibility, mobile usability, performance and security. Prefer small incremental improvements over unnecessary redesigns.
-
-    APPROVAL MODEL
-    For professional content or consequential changes, use: Finding → Impact → Recommendation → Approval. Never interpret vague agreement as approval for an unspecified change.
-
-    CONVERSATION AND CONTEXT
-    Maintain conversational context. Understand references such as "the second one", "tell me more", "open it", "do that" and "what about this". Use recent context before asking a question. Clarify only when ambiguity could cause a wrong action.
-
-    VOICE AND CHAT
-    Voice and text have the same capabilities and context. Voice responses should be short, natural and easy to speak aloud. Never read long structured content verbatim. Be interruptible and conversational.
-
-    TASK EXECUTION
-    Understand intent → determine whether the request needs information, analysis or an action → use only the required capability → respect approval/security rules → verify important results → report clearly. Never claim an action completed without evidence.
-
-    PERFORMANCE
-    Be fast. Avoid unnecessary network calls, reuse valid context, keep prompts compact, parallelize independent work when tools exist, and provide a useful short progress state during longer work.
-
-    COMMUNICATION STYLE
-    Professional, calm, concise and direct. No filler or excessive emojis. Match Shayan's conversational style while keeping the answer professional. When Shayan asks for an opinion, give a clear recommendation and briefly explain the trade-off.
-
-    GREETING
-    Greet Shayan naturally at the beginning of a new conversation or when he greets you. Do not repeat the same greeting on every turn.
-
-    SECURITY AND PRIVACY
-    Never ask for or expose passwords, API keys, access tokens, private keys, credentials or secrets. Treat private data as private.
-
-    CORE PRINCIPLE
-    Make Shayan more effective and professional, never more impressive than reality.
-    """
-
-    func respond(to userText: String) async throws -> String {
-        let apiKey = Self.loadAPIKey()
-        guard !apiKey.isEmpty else {
-            throw GmailToolError.api("OpenAI is not connected. Add your OpenAI API key in Workspace first.")
-        }
-
-        AIManagerLearningStore.shared.observe(userText)
-        turns.append(AIManagerTurn(role: "user", text: userText))
-        turns = Array(turns.suffix(10))
-
-        var input: [[String: Any]] = []
-        for turn in turns {
-            input.append([
-                "role": turn.role,
-                "content": turn.text
-            ])
-        }
-
-        let learned = AIManagerLearningStore.shared.profile
-        let context = learned.isEmpty
-            ? ""
-            : "\nCommunication preferences learned from Shayan's explicit interaction signals:\n\(learned)"
-
-        let body: [String: Any] = [
-            "model": model,
-            "instructions": masterPrompt + context,
-            "input": input,
-            "max_output_tokens": 350,
-            "store": false
+        let signals: [(String, String)] = [
+            ("short", "Prefer concise responses."),
+            ("brief", "Prefer concise responses."),
+            ("quick", "Prefer concise responses."),
+            ("explain more", "Provide more detail when explicitly requested."),
+            ("more detail", "Provide more detail when explicitly requested."),
+            ("deep dive", "Provide more detail when explicitly requested."),
+            ("just do it", "When an authorized action is clear, avoid unnecessary confirmation questions."),
+            ("go ahead", "When an authorized action is clear, avoid unnecessary confirmation questions.")
         ]
-
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 15
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else { throw GmailToolError.invalidResponse }
-        guard (200...299).contains(http.statusCode) else {
-            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
-                .flatMap { ($0["error"] as? [String: Any])?["message"] as? String }
-            throw GmailToolError.api(message ?? "AI Manager returned HTTP \(http.statusCode).")
+        for (trigger, preference) in signals where lower.contains(trigger) && !learnedPreferences.contains(preference) {
+            learnedPreferences.append(preference)
         }
+        learnedPreferences = Array(learnedPreferences.suffix(8))
+    }
 
-        let result = try JSONDecoder().decode(AIManagerResponse.self, from: data)
-        let answer = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !answer.isEmpty else { throw GmailToolError.invalidResponse }
-
-        turns.append(AIManagerTurn(role: "assistant", text: answer))
-        turns = Array(turns.suffix(10))
-        return answer
+    func previousRequest() -> String? {
+        recentTurns.dropLast().last
     }
 
     func resetConversation() {
-        turns.removeAll(keepingCapacity: true)
-    }
-
-    private static func loadAPIKey() -> String {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "com.shayan.commandcentre.openai",
-            kSecAttrAccount as String: "api-key",
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return "" }
-        return String(data: data, encoding: .utf8) ?? ""
+        recentTurns.removeAll(keepingCapacity: true)
     }
 }
 
-private struct AIManagerResponse: Decodable {
-    struct Item: Decodable {
-        let type: String
-        let content: [Content]?
-    }
+private enum AIManagerBehavior {
+    static let taskAreas = [
+        "professional and career tasks",
+        "SAP ABAP and S/4HANA",
+        "portfolio, recruiter, resume and LinkedIn work",
+        "learning and productivity",
+        "research and general questions"
+    ]
 
-    struct Content: Decodable {
-        let type: String
-        let text: String?
-    }
-
-    let output: [Item]
-
-    var text: String {
-        var parts: [String] = []
-        for item in output where item.type == "message" {
-            for part in item.content ?? [] where part.type == "output_text" {
-                if let text = part.text { parts.append(text) }
-            }
-        }
-        return parts.joined(separator: "\n")
-    }
+    static let principles = [
+        "Facts before assumptions.",
+        "Never fabricate skills, projects, clients, metrics, certifications, dates or responsibilities.",
+        "Prefer small incremental improvements over unnecessary redesigns.",
+        "For consequential professional changes: Finding → Impact → Recommendation → Approval.",
+        "GitHub is read/analyze/recommend only for the AI Manager; never mutate GitHub.",
+        "Use conversation context for references such as 'the second one' or 'tell me more'.",
+        "Clarify only when ambiguity could cause the wrong action.",
+        "Keep voice responses concise and natural.",
+        "Prioritize safety, accuracy, user control and performance."
+    ]
 }
 
 private enum InteractionMode: String, CaseIterable {
@@ -549,7 +400,6 @@ struct AICommandCenterView: View {
     @State private var emailTaskInFlight = false
     @State private var route: CoreDestination?
     @State private var interactionMode: InteractionMode = .voice
-    @State private var aiTaskInFlight = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
@@ -642,7 +492,7 @@ struct AICommandCenterView: View {
         }
         .onDisappear {
             voice.shutdown()
-            AIManagerService.shared.resetConversation()
+            AIManagerContext.shared.resetConversation()
         }
         .alert("Mail is not available", isPresented: $showMailUnavailable) {
             Button("OK", role: .cancel) {}
@@ -717,7 +567,12 @@ struct AICommandCenterView: View {
         }
 
         command = text
-        AIManagerLearningStore.shared.observe(text)
+
+        if let contextualReply = contextualResponse(for: lower) {
+            voice.reply = contextualReply
+            voice.speak(contextualReply)
+            return
+        }
 
         if isGreeting(lower) {
             voice.reply = greetingReply()
@@ -772,27 +627,54 @@ struct AICommandCenterView: View {
             voice.speak(message)
             openURL(url)
         case .unsupported:
-            Task { await answerWithAIManager() }
+            voice.reply = localTaskResponse(for: text)
+            voice.speak(voice.reply)
         }
     }
 
-    private func answerWithAIManager() async {
-        guard !aiTaskInFlight else { return }
-        aiTaskInFlight = true
-        defer { aiTaskInFlight = false }
 
-        voice.phaseTitle = "THINKING"
-        voice.phaseSubtitle = "Thinking with context…"
-        voice.statusText = "Thinking…"
+    private func contextualResponse(for lower: String) -> String? {
+        let references = [
+            "tell me more", "more about that", "explain that",
+            "what about the second one", "what about the first one",
+            "what about it", "do that", "open it"
+        ]
+        guard references.contains(lower) else { return nil }
 
-        do {
-            let answer = try await AIManagerService.shared.respond(to: command)
-            voice.reply = answer
-            voice.speak(answer)
-        } catch {
-            voice.reply = "I couldn't reach the AI Manager right now. \(error.localizedDescription)"
-            voice.speak(voice.reply)
+        if let previous = AIManagerContext.shared.previousRequest() {
+            return "I have your previous request in context: (previous). Tell me which part you want me to continue with."
         }
+        return "I need a little more context to know what you mean."
+    }
+
+    private func localTaskResponse(for text: String) -> String {
+        let lower = text.lowercased()
+
+        if lower.contains("portfolio") || lower.contains("resume") || lower.contains("linkedin") || lower.contains("recruiter") {
+            return "I can help with recruiter readability, ATS, technical clarity, accuracy, SEO, mobile usability, performance and security. I'll keep improvements incremental and factual."
+        }
+
+        if lower.contains("sap") || lower.contains("abap") || lower.contains("s4hana") || lower.contains("s/4") {
+            return "I can help with SAP ABAP and S/4HANA questions, debugging, interfaces, enhancements, OData, CDS, RAP, CPI and related work, while keeping recommendations grounded in what you've actually confirmed."
+        }
+
+        if lower.contains("learn") || lower.contains("study") || lower.contains("course") {
+            return "I can help structure your learning, explain concepts, compare approaches and turn a goal into practical next steps."
+        }
+
+        if lower.contains("research") || lower.contains("compare") || lower.contains("recommend") || lower.contains("opinion") {
+            return "I'll compare the options, separate facts from my recommendation, and give you the practical trade-off."
+        }
+
+        if lower.contains("github") && (lower.contains("change") || lower.contains("modify") || lower.contains("push") || lower.contains("commit") || lower.contains("merge") || lower.contains("deploy")) {
+            return "AI Manager can inspect GitHub and recommend or draft changes, but it will not modify GitHub."
+        }
+
+        if lower.contains("what do you know about me") || lower.contains("what do you know about my work") {
+            return "I use the context you've explicitly given me about your work, projects and preferences. I won't invent missing details."
+        }
+
+        return "I understand the request, but I don't have a local action mapped for it yet. I can help with your portfolio, SAP work, career tasks, learning, productivity, research, Gmail and general questions."
     }
 
     private func connectGmail() async {
@@ -874,7 +756,7 @@ struct AICommandCenterView: View {
 
     private func basicAssistantReply(for text: String) -> String {
         if text.contains("what can you do") || text == "help" {
-            return "I'm your AI Manager. I can chat naturally, keep short-term context, learn your communication preferences over time, read and summarize Gmail, open Shayan Core destinations, check portfolio status, and prepare email drafts with approval."
+            return "I'm your AI Manager. I can chat with you, read and summarize Gmail, open Shayan Core destinations, check portfolio status, prepare email drafts with approval, and guide you through tasks. More tools can be added without changing the conversation layer."
         }
         if text.contains("who are you") || text.contains("what are you") {
             return "I'm Shayan Core's AI Manager. My job is to understand what you want, keep the conversation natural, use the right app capability, and clearly tell you what I did."
