@@ -3,6 +3,7 @@ import SwiftUI
 enum CoreDestination: Hashable {
     case coreCommand
     case aiCommandCenter
+    case workspace
     case profile
     case quickActions
     case insights
@@ -25,6 +26,8 @@ struct CoreDestinationView: View {
             CoreCommandView()
         case .aiCommandCenter:
             AICommandCenterView()
+        case .workspace:
+            WorkspaceView()
         case .profile:
             ProfileView()
         case .quickActions:
