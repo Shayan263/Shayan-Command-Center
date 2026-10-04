@@ -86,6 +86,43 @@ struct HomeView: View {
 
                         CommandPulse(status: dashboardStatus)
 
+                        NavigationLink(value: CoreDestination.sentinel) {
+                            HStack(spacing: 13) {
+                                Image(systemName: "shield.checkered")
+                                    .font(.title2.weight(.semibold))
+                                    .foregroundStyle(.blue)
+                                    .frame(width: 44, height: 44)
+                                    .background(.blue.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 13))
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("CORE SENTINEL")
+                                        .font(.headline.weight(.bold))
+                                        .tracking(0.8)
+                                    Text("AI Security Intelligence")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(dashboardStatus.isOnline ? Color.green : Color.orange)
+                                        .frame(width: 7, height: 7)
+                                    Text(dashboardStatus.isOnline ? "SYSTEM SECURE" : "ATTENTION")
+                                        .font(.system(size: 8, weight: .bold))
+                                        .tracking(0.5)
+                                        .foregroundStyle(dashboardStatus.isOnline ? .green : .orange)
+                                }
+                            }
+                            .padding(15)
+                            .background(.white.opacity(0.045))
+                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.07), lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
+                        .buttonStyle(.plain)
+
                         HStack(spacing: 12) {
                             NavigationLink {
                                 DashboardDetailView(status: dashboardStatus, openExternal: { browserDestination = BrowserDestination(url: $0) })
@@ -430,6 +467,8 @@ struct CommandSidebar: View {
                     NavigationLink(value: CoreDestination.importantLinks) { SidebarLabel(title: "Important Links", subtitle: "Website, LinkedIn & GitHub", icon: "link") }.buttonStyle(.plain)
                     NavigationLink(value: CoreDestination.quickActions) { SidebarLabel(title: "Quick Actions", subtitle: "Open, copy & share", icon: "bolt.fill") }.buttonStyle(.plain)
                     NavigationLink(value: CoreDestination.insights) { SidebarLabel(title: "Insights", subtitle: "System & portfolio status", icon: "chart.bar.xaxis") }.buttonStyle(.plain)
+                    SidebarSectionTitle("SECURITY")
+                    NavigationLink(value: CoreDestination.sentinel) { SidebarLabel(title: "Core Sentinel", subtitle: "AI Security Intelligence", icon: "shield.checkered") }.buttonStyle(.plain)
                     SidebarSectionTitle("MODULES")
                     NavigationLink(value: CoreDestination.resume) { SidebarLabel(title: "Shayan Resume Builder", subtitle: "Build & tailor resumes", icon: "doc.text.magnifyingglass") }.buttonStyle(.plain)
                     NavigationLink(value: CoreDestination.learning) { SidebarLabel(title: "Shayan Learning Hub", subtitle: "AI Automations documentation", icon: "graduationcap.fill") }.buttonStyle(.plain)
