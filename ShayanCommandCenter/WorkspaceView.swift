@@ -144,8 +144,12 @@ private final class ChatGPTService: ObservableObject {
         var toolRound = 0
         
         while true {
-            let calls: [ToolCall] = response.output.compactMap { item in
-                self.parseToolCall(item)
+            var calls: [ToolCall] = []
+            calls.reserveCapacity(response.output.count)
+            for item in response.output {
+                if let call = self.parseToolCall(item) {
+                    calls.append(call)
+                }
             }
             if calls.isEmpty {
                 let answer = response.output
