@@ -102,7 +102,7 @@
 				A00000000000000000000019 /* AppSecurity.swift */,
 				A0000000000000000000001A /* CoreNavigation.swift */,
 				A0000000000000000000001C /* CoreCommandView.swift */,
-				A00000000000000000000020 /* CoreSentinelView.swift */,
+				A00000000000000000000021 /* CoreSentinelView.swift */,
 				A0000000000000000000001E /* InAppBrowserView.swift */,
 				A0000000000000000000001F /* ProfileView.swift */,
 				C00000000000000000000002 /* AI Automations.pdf */,
