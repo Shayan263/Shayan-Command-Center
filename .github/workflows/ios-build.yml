@@ -1,5 +1,5 @@
 name: iOS Build
-# Latest full sanity trigger: 2026-10-03T21:42:17.346Z
+# Latest full sanity trigger: 2026-10-04
 # CI sanity verification trigger
 
 concurrency:
@@ -8,6 +8,8 @@ concurrency:
 
 on:
   push:
+    branches: [main, root]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
