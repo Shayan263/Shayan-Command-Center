@@ -2,22 +2,14 @@ import SwiftUI
 
 @main
 struct ShayanCommandCenterApp: App {
-    @AppStorage("appLockEnabled") private var appLockEnabled = false
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var isUnlocked = false
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = true
     @State private var showLaunchScreen = true
 
     var body: some Scene {
         WindowGroup {
             ZStack {
-                Group {
-                    if appLockEnabled && !isUnlocked {
-                        AppLockView { isUnlocked = true }
-                    } else {
-                        HomeView()
-                    }
-                }
-                .preferredColorScheme(.dark)
+                HomeView()
+                    .preferredColorScheme(darkModeEnabled ? .dark : .light)
 
                 if showLaunchScreen {
                     LaunchView()
@@ -25,20 +17,9 @@ struct ShayanCommandCenterApp: App {
                         .zIndex(1)
                 }
             }
-            .onAppear {
-                if !appLockEnabled { isUnlocked = true }
-            }
-            .onChange(of: appLockEnabled) { _, enabled in
-                isUnlocked = !enabled
-            }
-            .onChange(of: scenePhase) { _, phase in
-                if phase == .background && appLockEnabled {
-                    isUnlocked = false
-                }
-            }
             .task {
-                try? await Task.sleep(for: .milliseconds(650))
-                withAnimation(.easeOut(duration: 0.3)) {
+                try? await Task.sleep(for: .milliseconds(900))
+                withAnimation(.easeInOut(duration: 0.42)) {
                     showLaunchScreen = false
                 }
             }
@@ -47,20 +28,34 @@ struct ShayanCommandCenterApp: App {
 }
 
 private struct LaunchView: View {
+    @State private var appeared = false
+
     var body: some View {
         ZStack {
-            Color(red: 0.025, green: 0.035, blue: 0.07).ignoresSafeArea()
-            VStack(spacing: 12) {
+            Color(.systemBackground).ignoresSafeArea()
+
+            VStack(spacing: 14) {
                 Image(systemName: "circle.hexagongrid.fill")
-                    .font(.system(size: 58))
+                    .font(.system(size: 62, weight: .semibold))
                     .foregroundStyle(.blue)
+                    .scaleEffect(appeared ? 1.0 : 0.72)
+                    .opacity(appeared ? 1 : 0)
+
                 Text("SHAYAN CORE")
                     .font(.title2.bold())
                     .tracking(2)
-                Text("Your personal digital core")
+                    .opacity(appeared ? 1 : 0)
+
+                Text("Initializing your digital workspace…")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 8)
             }
+            .animation(.easeOut(duration: 0.55), value: appeared)
+        }
+        .task {
+            appeared = true
         }
     }
 }
