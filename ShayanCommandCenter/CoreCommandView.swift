@@ -221,12 +221,119 @@ private struct AICommandEngine {
         return nil
     }
 }
+@MainActor
+private final class GmailAISummaryService {
+    static let shared = GmailAISummaryService()
+
+    private let endpoint = URL(string: "https://api.openai.com/v1/responses")!
+    private let model = "gpt-6-luna"
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.waitsForConnectivity = false
+        configuration.timeoutIntervalForRequest = 18
+        configuration.timeoutIntervalForResource = 22
+        configuration.httpMaximumConnectionsPerHost = 4
+        return URLSession(configuration: configuration)
+    }()
+
+    private struct ResponseItem: Decodable {
+        let type: String
+        let content: [ContentItem]?
+    }
+
+    private struct ContentItem: Decodable {
+        let type: String
+        let text: String?
+    }
+
+    private struct ResponseEnvelope: Decodable {
+        let output: [ResponseItem]
+        var text: String {
+            var parts: [String] = []
+            for item in output {
+                guard item.type == "message", let content = item.content else { continue }
+                for part in content {
+                    if part.type == "output_text", let text = part.text { parts.append(text) }
+                }
+            }
+            return parts.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+
+    func summarize(emails: [GmailMessageSummary], question: String?) async throws -> String {
+        let apiKey = Self.loadAPIKey()
+        guard !apiKey.isEmpty else {
+            throw GmailToolError.api("OpenAI is not connected. Add your OpenAI API key in Workspace first.")
+        }
+
+        var lines: [String] = []
+        for (index, email) in emails.prefix(6).enumerated() {
+            lines.append("\(index + 1). From: \(email.sender) | Subject: \(email.subject) | Preview: \(email.snippet)")
+        }
+
+        let followUp = question.map { "\nFollow-up question: \($0)" } ?? ""
+        let prompt = """
+        You are Shayan Core's personal email manager.
+        Summarize the user's Gmail clearly for voice playback.
+        Be concise: maximum 5 short sentences.
+        Start with the overall situation, then mention the most important messages and what each is about.
+        Mention urgency or action needed when it is obvious from the subject/preview.
+        Do not invent details that are not present.
+        Do not read long email text verbatim.
+        Email messages:
+        \(lines.joined(separator: "\n"))
+        \(followUp)
+        """
+
+        let body: [String: Any] = [
+            "model": model,
+            "input": [["role": "user", "content": prompt]],
+            "instructions": "You are a fast, concise voice assistant. Answer directly and naturally; no markdown unless needed.",
+            "max_output_tokens": 300
+        ]
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 18
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw GmailToolError.invalidResponse }
+        guard (200...299).contains(http.statusCode) else {
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
+                .flatMap { ($0["error"] as? [String: Any])?["message"] as? String }
+            throw GmailToolError.api(message ?? "OpenAI returned HTTP \(http.statusCode).")
+        }
+
+        let result = try JSONDecoder().decode(ResponseEnvelope.self, from: data)
+        guard !result.text.isEmpty else { throw GmailToolError.invalidResponse }
+        return result.text
+    }
+
+    private static func loadAPIKey() -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "com.shayan.commandcentre.openai",
+            kSecAttrAccount as String: "api-key",
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+}
 struct AICommandCenterView: View {
     @StateObject private var voice = VoiceConversationController()
     @State private var command = ""
     @State private var plan: AICommandPlan?
     @State private var activity: [String] = []
     @State private var showMailUnavailable = false
+    @State private var lastEmails: [GmailMessageSummary] = []
+    @State private var emailTaskInFlight = false
     @State private var route: CoreDestination?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -362,6 +469,15 @@ struct AICommandCenterView: View {
         }
 
         command = text
+        let followUpWords = ["tell me more", "more about", "explain that", "what about the second", "what about the first", "which one is important", "is anything urgent"]
+        if !lastEmails.isEmpty && followUpWords.contains(where: { lower.contains($0) }) {
+            voice.phaseTitle = "THINKING"
+            voice.phaseSubtitle = "Using the email context…"
+            voice.statusText = "Thinking…"
+            Task { await summarizeEmails(query: "in:inbox", followUp: text) }
+            return
+        }
+
         let newPlan = engine.plan(text)
         plan = newPlan
         execute(newPlan)
@@ -372,6 +488,12 @@ struct AICommandCenterView: View {
         case .emailDraft(let recipient, _, _):
             voice.reply = "I prepared an email to \(recipient). Say yes when you want me to open Mail."
             voice.speak(voice.reply)
+        case .connectGmail:
+            voice.reply = "Opening Google now. Give Gmail read-only access and I'll handle the rest."
+            voice.speak(voice.reply)
+            Task { await connectGmail() }
+        case .emailSummary(let query):
+            Task { await summarizeEmails(query: query, followUp: nil) }
         case .portfolioStatus:
             voice.reply = "I'm checking the live portfolio systems. The latest status is on your Home dashboard."
             voice.speak(voice.reply)
@@ -393,6 +515,59 @@ struct AICommandCenterView: View {
         }
     }
 
+    private func connectGmail() async {
+        do {
+            try await GmailTool.shared.connect()
+            let account = GmailTool.shared.accountEmail.map { " as \($0)" } ?? ""
+            activity.insert("Gmail connected\(account)", at: 0)
+            voice.reply = "Gmail is connected. What would you like to know?"
+            voice.speak(voice.reply)
+        } catch {
+            activity.insert("Gmail connection failed", at: 0)
+            voice.reply = error.localizedDescription
+            voice.speak(voice.reply)
+        }
+    }
+
+    private func summarizeEmails(query: String, followUp: String?) async {
+        guard !emailTaskInFlight else { return }
+        emailTaskInFlight = true
+        defer { emailTaskInFlight = false }
+
+        guard GmailTool.shared.isConnected else {
+            voice.reply = "Your Gmail isn't connected yet. Say, connect my Gmail."
+            voice.speak(voice.reply)
+            return
+        }
+
+        voice.phaseTitle = "READING"
+        voice.phaseSubtitle = "Checking your Gmail…"
+        voice.statusText = "Reading email…"
+        do {
+            let emails: [GmailMessageSummary]
+            if followUp != nil && !lastEmails.isEmpty {
+                emails = lastEmails
+            } else {
+                emails = try await GmailTool.shared.recentMessages(query: query, maxResults: 6)
+                lastEmails = emails
+            }
+
+            guard !emails.isEmpty else {
+                voice.reply = "You don't have any matching messages right now."
+                voice.speak(voice.reply)
+                return
+            }
+
+            let answer = try await GmailAISummaryService.shared.summarize(emails: emails, question: followUp)
+            activity.insert("Reviewed \(emails.count) Gmail messages", at: 0)
+            voice.reply = answer
+            voice.speak(answer)
+        } catch {
+            activity.insert("Gmail read failed", at: 0)
+            voice.reply = "I couldn't read Gmail right now. \(error.localizedDescription)"
+            voice.speak(voice.reply)
+        }
+    }
     private func submitTypedCommand() {
         guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         handleCommand(command)
