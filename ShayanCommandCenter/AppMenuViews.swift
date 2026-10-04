@@ -1,41 +1,7 @@
 import SwiftUI
 import UIKit
-import LocalAuthentication
 import AVFoundation
 import PDFKit
-
-struct ImportantLinksView: View {
-    let openExternal: (URL) -> Void
-    private let links: [(String, String, String, String)] = [
-        ("My Website", "Public portfolio & profile", "globe", "https://shayan263.github.io/Shayan_Profile/"),
-        ("Admin Dashboard", "Private portfolio analytics", "chart.xyaxis.line", "https://shayan263.github.io/Shayan_Profile/admin.html"),
-        ("LinkedIn", "Professional profile", "person.crop.circle", "https://www.linkedin.com/"),
-        ("GitHub", "Code and projects", "chevron.left.forwardslash.chevron.right", "https://github.com/Shayan263")
-    ]
-
-    var body: some View {
-        List {
-            Section("Important Links") {
-                ForEach(links, id: \.0) { link in
-                    Button {
-                        guard let url = URL(string: link.3), url.scheme == "https" else { return }
-                        openExternal(url)
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(link.0).font(.body.weight(.semibold))
-                                Text(link.1).font(.caption).foregroundStyle(.secondary)
-                            }
-                        } icon: { Image(systemName: link.2).frame(width: 24) }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .navigationTitle("Important Links")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
 
 struct QuickActionsView: View {
     @State private var copied = false
@@ -139,24 +105,19 @@ private struct InsightRow: View {
 
 struct SettingsView: View {
     @AppStorage("darkModeEnabled") private var darkModeEnabled = true
-    @AppStorage("appLockEnabled") private var appLockEnabled = false
 
     var body: some View {
         Form {
             Section("Appearance") {
                 Toggle(isOn: $darkModeEnabled) {
-                    Label("Dark interface", systemImage: "moon.fill")
-                }.disabled(true)
-                Text("Shayan Core currently uses its dark visual system. Theme selection can be expanded later.")
+                    Label("Dark interface", systemImage: darkModeEnabled ? "moon.fill" : "sun.max.fill")
+                }
+                Text("Choose dark or light appearance for Shayan Core.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             Section("Security") {
-                Toggle(isOn: $appLockEnabled) {
-                    Label("Require Face ID / passcode", systemImage: "faceid")
-                }
-                Label("Secure notes use Keychain storage", systemImage: "lock.shield")
-                    .foregroundStyle(.secondary)
-                Text("App authentication uses iOS Local Authentication. Sensitive notes are stored in the Keychain rather than UserDefaults.")
+                Label("iOS device security", systemImage: "lock.shield")
+                Text("Shayan Core does not add a separate Face ID lock. Your iPhone's existing device security protects the app and its Keychain data.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             Section("Privacy & Network") {
@@ -247,91 +208,6 @@ struct PlainTextView: View {
     }
 }
 
-struct AppLockView: View {
-    let onUnlock: () -> Void
-    @State private var errorMessage: String?
-    @State private var isAuthenticating = false
-
-    private var biometricType: LABiometryType {
-        AppSecurity.biometricType()
-    }
-
-    private var biometricIcon: String {
-        biometricType == .faceID ? "faceid" : "lock.shield.fill"
-    }
-
-    var body: some View {
-        ZStack {
-            Color(red: 0.025, green: 0.035, blue: 0.07).ignoresSafeArea()
-
-            VStack(spacing: 22) {
-                Image(systemName: biometricIcon)
-                    .font(.system(size: 54))
-                    .foregroundStyle(.blue)
-
-                Text("Shayan Core Locked")
-                    .font(.title.bold())
-
-                Text(biometricType == .faceID
-                     ? "Use Face ID to unlock."
-                     : "Authenticate to continue.")
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    Task { await authenticateIfNeeded() }
-                } label: {
-                    Label(
-                        isAuthenticating ? "Authenticating…" : "Unlock",
-                        systemImage: biometricIcon
-                    )
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isAuthenticating)
-                .padding(.horizontal, 30)
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                }
-            }
-            .padding(24)
-        }
-        .task {
-            await authenticateIfNeeded()
-        }
-    }
-
-    private func authenticateIfNeeded() async {
-        guard !isAuthenticating else { return }
-
-        isAuthenticating = true
-        defer { isAuthenticating = false }
-
-        do {
-            try await AppSecurity.authenticate()
-            onUnlock()
-        } catch AppSecurityError.biometryNotEnrolled {
-            errorMessage = "Face ID is not enrolled. Set up Face ID in iPhone Settings, then try again."
-        } catch AppSecurityError.biometryUnavailable {
-            errorMessage = "Face ID is currently unavailable. You can use your device passcode."
-        } catch AppSecurityError.biometryLockedOut {
-            errorMessage = "Face ID is locked after failed attempts. Unlock your iPhone with the passcode, then try again."
-        } catch AppSecurityError.passcodeNotSet {
-            errorMessage = "Set a device passcode before enabling Shayan Core protection."
-        } catch AppSecurityError.authentication(let message) {
-            errorMessage = message
-        } catch {
-            errorMessage = "Authentication was not completed. Tap Unlock to try again."
-        }
-    }
-}
-
 struct ResumeBuilderPreviewView: View {
     var body: some View {
         UpcomingFeatureView(icon: "doc.text.magnifyingglass", eyebrow: "UPCOMING MODULE", title: "Shayan Resume Builder",
@@ -349,7 +225,7 @@ struct LearningHubPreviewView: View {
 struct LearningHubPDFView: View {
     var body: some View {
         PDFDocumentView(resourceName: "AI Automations", resourceExtension: "pdf")
-            .background(Color(red: 0.025, green: 0.035, blue: 0.07))
+            .background(Color(.systemBackground))
             .navigationTitle("AI Automations")
             .navigationBarTitleDisplayMode(.inline)
     }
@@ -437,7 +313,7 @@ private struct QRResultView: View {
             Text("QR Result").font(.title2.bold())
             Text(value).font(.body.monospaced()).multilineTextAlignment(.center).textSelection(.enabled)
                 .padding(16).frame(maxWidth: .infinity)
-                .background(.white.opacity(0.06))
+                .background(Color.primary.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
             HStack {
@@ -567,8 +443,8 @@ private struct UpcomingFeatureView: View {
                         }.padding(.vertical, 4)
                     }
                 }
-                .padding(18).background(.white.opacity(0.045))
-                .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.07), lineWidth: 1))
+                .padding(18).background(Color.primary.opacity(0.045))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.primary.opacity(0.07), lineWidth: 1))
                 .clipShape(RoundedRectangle(cornerRadius: 20))
                 Text("This is a preview. The module will be built into Shayan Core as the platform expands.")
                     .font(.footnote).foregroundStyle(.secondary)
