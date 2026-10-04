@@ -9,7 +9,7 @@ final class DashboardStatus: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var isChecking = false
 
-    private let url = URL(string: "https://shayan263.github.io/Shayan_Profile/admin.html")!
+    private let url = URL(string: "https://shayan263.github.io/Shayan_Profile/")!
 
     var lastCheckedText: String {
         guard let lastChecked else { return "Checking…" }
