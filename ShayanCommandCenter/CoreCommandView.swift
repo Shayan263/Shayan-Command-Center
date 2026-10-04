@@ -821,7 +821,7 @@ struct AICommandCenterView: View {
             return cleaned.count > 420 ? String(cleaned.prefix(420)) + "…" : cleaned
         }
 
-        let selected = sentences.prefix(3).map(String.init).joined(separator: ". ")
+        let selected = sentences.prefix(3).map { String($0) }.joined(separator: ". ")
         let summary = selected + (selected.hasSuffix(".") ? "" : ".")
         return summary.count > 420 ? String(summary.prefix(420)) + "…" : summary
     }
