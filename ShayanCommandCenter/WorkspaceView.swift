@@ -78,7 +78,7 @@ private struct OpenAIResponse: Decodable {
             .filter { $0.type == "message" }
             .flatMap { $0.content ?? [] }
             .filter { $0.type == "output_text" }
-            .compactMap(.text)
+            .compactMap(\.text)
             .joined(separator: "\n")
     }
 }
