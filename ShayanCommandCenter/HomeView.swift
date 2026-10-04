@@ -372,7 +372,7 @@ private struct LiveDetailCard: View {
             }
             HStack {
                 Label("Response", systemImage: "speedometer")
-                Spacer(); Text(response.map { "($0) ms" } ?? "—").foregroundStyle(.secondary)
+                Spacer(); Text(response.map { value in "\(value) ms" } ?? "—").foregroundStyle(.secondary)
             }
             HStack {
                 Label("Last checked", systemImage: "clock")
