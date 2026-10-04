@@ -18,7 +18,7 @@ struct ShayanCommandCenterApp: App {
                 }
             }
             .task {
-                try? await Task.sleep(for: .milliseconds(900))
+                try? await Task.sleep(for: .milliseconds(1800))
                 withAnimation(.easeInOut(duration: 0.42)) {
                     showLaunchScreen = false
                 }
