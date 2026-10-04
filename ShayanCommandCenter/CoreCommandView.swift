@@ -378,7 +378,7 @@ struct AICommandCenterView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Text("Tap the orb to interrupt • Shayan Core automatically listens after every reply")
+                Text("Talk naturally • interrupt anytime • Shayan Core listens again after every reply")
                     .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center)
             }
             .padding(.horizontal, 18)
@@ -668,39 +668,22 @@ private struct VoiceOrb: View {
 
 private struct VoiceWave: View {
     let active: Bool
-    @State private var phase = false
 
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<9, id: \.self) { index in
-                VoiceWaveBar(index: index, active: active, phase: phase)
+        TimelineView(.animation(minimumInterval: 0.08)) { context in
+            HStack(spacing: 4) {
+                ForEach(0..<9, id: \.self) { index in
+                    let time = context.date.timeIntervalSinceReferenceDate
+                    let primary = sin(time * (active ? 5.0 : 1.6) + Double(index) * 0.72)
+                    let secondary = sin(time * (active ? 2.4 : 0.8) + Double(index) * 1.15)
+                    let height = active ? 8 + abs(primary) * 14 + abs(secondary) * 4 : 7
+                    Capsule()
+                        .fill(.white.opacity(active ? 0.92 : 0.38))
+                        .frame(width: 4, height: CGFloat(height))
+                }
             }
+            .frame(width: 82, height: 28)
         }
-        .frame(width: 82, height: 25)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
-                phase = true
-            }
-        }
-    }
-}
-
-private struct VoiceWaveBar: View {
-    let index: Int
-    let active: Bool
-    let phase: Bool
-
-    private var height: CGFloat {
-        guard active else { return 7 }
-        let forward = [8, 12, 17, 13, 20, 14, 18, 11, 8]
-        let reverse = [12, 17, 10, 20, 13, 18, 11, 16, 12]
-        return phase ? CGFloat(forward[index]) : CGFloat(reverse[index])
-    }
-
-    var body: some View {
-        Capsule()
-            .fill(.white.opacity(active ? 0.9 : 0.42))
-            .frame(width: 4, height: height)
     }
 }
 
@@ -750,7 +733,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
             shouldContinueConversation = true
             statusText = "Listening…"
             phaseTitle = "LISTENING"
-            phaseSubtitle = "Speak naturally — no stop button needed"
+            phaseSubtitle = "Speak naturally — I'll know when you're done"
             iconName = "waveform"
             isListening = true
 
@@ -906,7 +889,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
 
     private func armSilenceTimeout(initial: Bool = false) {
         silenceTask?.cancel()
-        let delay: Duration = initial ? .seconds(4.5) : .seconds(2.0)
+        let delay: Duration = initial ? .seconds(3.5) : .seconds(1.35)
         silenceTask = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
