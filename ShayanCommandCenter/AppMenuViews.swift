@@ -450,7 +450,7 @@ private struct UpcomingFeatureView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }.padding(20)
         }
-        .background(Color(red: 0.025, green: 0.035, blue: 0.07))
+        .background(Color(.systemBackground))
         .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
     }
 }
