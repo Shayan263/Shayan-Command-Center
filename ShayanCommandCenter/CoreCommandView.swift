@@ -444,17 +444,34 @@ private struct VoiceWave: View {
     var body: some View {
         HStack(spacing: 4) {
             ForEach(0..<9, id: \.self) { index in
-                Capsule()
-                    .fill(.white.opacity(active ? 0.9 : 0.42))
-                    .frame(width: 4, height: active ? (phase ? CGFloat(7 + (index % 4) * 4) : CGFloat(8 + ((8 - index) % 4) * 4)) : 7)
+                VoiceWaveBar(index: index, active: active, phase: phase)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(width: 82, height: 25)
         .onAppear {
             withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
                 phase = true
             }
         }
+    }
+}
+
+private struct VoiceWaveBar: View {
+    let index: Int
+    let active: Bool
+    let phase: Bool
+
+    private var height: CGFloat {
+        guard active else { return 7 }
+        let forward = [8, 12, 17, 13, 20, 14, 18, 11, 8]
+        let reverse = [12, 17, 10, 20, 13, 18, 11, 16, 12]
+        return phase ? CGFloat(forward[index]) : CGFloat(reverse[index])
+    }
+
+    var body: some View {
+        Capsule()
+            .fill(.white.opacity(active ? 0.9 : 0.42))
+            .frame(width: 4, height: height)
     }
 }
 
