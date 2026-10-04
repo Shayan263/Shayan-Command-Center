@@ -99,7 +99,6 @@ private struct AICommandEngine {
     func plan(_ input: String) -> AICommandPlan {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let lower = text.lowercased()
-        AIManagerContext.shared.observe(text)
 
         if let action = routeAction(lower) { return action }
 
@@ -327,64 +326,6 @@ private final class GmailAISummaryService {
         return String(data: data, encoding: .utf8) ?? ""
     }
 }
-
-@MainActor
-private final class AIManagerContext {
-    static let shared = AIManagerContext()
-    private var recentTurns: [String] = []
-    private(set) var learnedPreferences: [String] = []
-
-    func observe(_ text: String) {
-        recentTurns.append(text)
-        recentTurns = Array(recentTurns.suffix(8))
-        let lower = text.lowercased()
-        let signals: [(String, String)] = [
-            ("short", "Prefer concise responses."),
-            ("brief", "Prefer concise responses."),
-            ("quick", "Prefer concise responses."),
-            ("explain more", "Provide more detail when explicitly requested."),
-            ("more detail", "Provide more detail when explicitly requested."),
-            ("deep dive", "Provide more detail when explicitly requested."),
-            ("just do it", "When an authorized action is clear, avoid unnecessary confirmation questions."),
-            ("go ahead", "When an authorized action is clear, avoid unnecessary confirmation questions.")
-        ]
-        for (trigger, preference) in signals where lower.contains(trigger) && !learnedPreferences.contains(preference) {
-            learnedPreferences.append(preference)
-        }
-        learnedPreferences = Array(learnedPreferences.suffix(8))
-    }
-
-    func previousRequest() -> String? {
-        recentTurns.dropLast().last
-    }
-
-    func resetConversation() {
-        recentTurns.removeAll(keepingCapacity: true)
-    }
-}
-
-private enum AIManagerBehavior {
-    static let taskAreas = [
-        "professional and career tasks",
-        "SAP ABAP and S/4HANA",
-        "portfolio, recruiter, resume and LinkedIn work",
-        "learning and productivity",
-        "research and general questions"
-    ]
-
-    static let principles = [
-        "Facts before assumptions.",
-        "Never fabricate skills, projects, clients, metrics, certifications, dates or responsibilities.",
-        "Prefer small incremental improvements over unnecessary redesigns.",
-        "For consequential professional changes: Finding → Impact → Recommendation → Approval.",
-        "GitHub is read/analyze/recommend only for the AI Manager; never mutate GitHub.",
-        "Use conversation context for references such as 'the second one' or 'tell me more'.",
-        "Clarify only when ambiguity could cause the wrong action.",
-        "Keep voice responses concise and natural.",
-        "Prioritize safety, accuracy, user control and performance."
-    ]
-}
-
 private enum InteractionMode: String, CaseIterable {
     case voice = "Voice"
     case chat = "Chat"
@@ -490,10 +431,7 @@ struct AICommandCenterView: View {
                 voice.stopListening()
             }
         }
-        .onDisappear {
-            voice.shutdown()
-            AIManagerContext.shared.resetConversation()
-        }
+        .onDisappear { voice.shutdown() }
         .alert("Mail is not available", isPresented: $showMailUnavailable) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -568,12 +506,6 @@ struct AICommandCenterView: View {
 
         command = text
 
-        if let contextualReply = contextualResponse(for: lower) {
-            voice.reply = contextualReply
-            voice.speak(contextualReply)
-            return
-        }
-
         if isGreeting(lower) {
             voice.reply = greetingReply()
             voice.speak(voice.reply)
@@ -627,54 +559,9 @@ struct AICommandCenterView: View {
             voice.speak(message)
             openURL(url)
         case .unsupported:
-            voice.reply = localTaskResponse(for: text)
+            voice.reply = newPlan.summary
             voice.speak(voice.reply)
         }
-    }
-
-
-    private func contextualResponse(for lower: String) -> String? {
-        let references = [
-            "tell me more", "more about that", "explain that",
-            "what about the second one", "what about the first one",
-            "what about it", "do that", "open it"
-        ]
-        guard references.contains(lower) else { return nil }
-
-        if let previous = AIManagerContext.shared.previousRequest() {
-            return "I have your previous request in context: (previous). Tell me which part you want me to continue with."
-        }
-        return "I need a little more context to know what you mean."
-    }
-
-    private func localTaskResponse(for text: String) -> String {
-        let lower = text.lowercased()
-
-        if lower.contains("portfolio") || lower.contains("resume") || lower.contains("linkedin") || lower.contains("recruiter") {
-            return "I can help with recruiter readability, ATS, technical clarity, accuracy, SEO, mobile usability, performance and security. I'll keep improvements incremental and factual."
-        }
-
-        if lower.contains("sap") || lower.contains("abap") || lower.contains("s4hana") || lower.contains("s/4") {
-            return "I can help with SAP ABAP and S/4HANA questions, debugging, interfaces, enhancements, OData, CDS, RAP, CPI and related work, while keeping recommendations grounded in what you've actually confirmed."
-        }
-
-        if lower.contains("learn") || lower.contains("study") || lower.contains("course") {
-            return "I can help structure your learning, explain concepts, compare approaches and turn a goal into practical next steps."
-        }
-
-        if lower.contains("research") || lower.contains("compare") || lower.contains("recommend") || lower.contains("opinion") {
-            return "I'll compare the options, separate facts from my recommendation, and give you the practical trade-off."
-        }
-
-        if lower.contains("github") && (lower.contains("change") || lower.contains("modify") || lower.contains("push") || lower.contains("commit") || lower.contains("merge") || lower.contains("deploy")) {
-            return "AI Manager can inspect GitHub and recommend or draft changes, but it will not modify GitHub."
-        }
-
-        if lower.contains("what do you know about me") || lower.contains("what do you know about my work") {
-            return "I use the context you've explicitly given me about your work, projects and preferences. I won't invent missing details."
-        }
-
-        return "I understand the request, but I don't have a local action mapped for it yet. I can help with your portfolio, SAP work, career tasks, learning, productivity, research, Gmail and general questions."
     }
 
     private func connectGmail() async {
