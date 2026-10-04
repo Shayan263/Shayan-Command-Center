@@ -138,26 +138,7 @@ private final class ChatGPTService: ObservableObject {
             statusMessage = nil
         }
         
-        let firstInput: [String: Any] = [
-            "role": "user",
-            "content": message
-        ]
-        
-        var body: [String: Any] = [
-            "model": model,
-            "input": [firstInput],
-            "instructions": """
-            You are the brain of Shayan Workspace. Act like a practical senior software engineer and agent.
-            Do not merely explain how to do a task when you can inspect the project and perform the read-only work through tools.
-            For website sanity checks, inspect the live website AND repository source when available.
-            Always include performance: response time, page/assets size or obvious bottlenecks, unnecessary requests, duplicated markup/assets, and likely mobile/iOS UX issues.
-            Be concise and action-oriented. Prefer evidence from tools over guesses.
-            Do not use web search unless the user explicitly needs fresh external information.
-            Read-only tools are safe. Never claim that a file was changed, committed, deployed, or merged unless a write tool actually reports success.
-            """,
-            "parallel_tool_calls": true,
-            "tools": toolDefinitions
-        ]
+        var body = initialRequestBody(message)
         
         var response = try await performRequest(body: body, apiKey: apiKey)
         var toolRound = 0
@@ -212,18 +193,7 @@ private final class ChatGPTService: ObservableObject {
                 ]
             }
             
-            body = [
-                "model": model,
-                "previous_response_id": response.id,
-                "input": toolInputs,
-                "instructions": """
-                Continue the same task. Use the tool evidence you just received.
-                If more inspection is genuinely required, use the smallest number of read-only tool calls possible.
-                Otherwise produce the final result now, prioritizing concrete findings and performance.
-                """,
-                "parallel_tool_calls": true,
-                "tools": toolDefinitions
-            ]
+            body = continuationRequestBody(responseID: response.id, toolInputs: toolInputs)
             
             response = try await performRequest(body: body, apiKey: apiKey)
         }
@@ -234,6 +204,37 @@ private final class ChatGPTService: ObservableObject {
         statusMessage = nil
     }
     
+    private func initialRequestBody(_ message: String) -> [String: Any] {
+        [
+            "model": model,
+            "input": [["role": "user", "content": message]],
+            "instructions": agentInstructions,
+            "parallel_tool_calls": true,
+            "tools": Self.toolDefinitions
+        ]
+    }
+
+    private func continuationRequestBody(responseID: String, toolInputs: [[String: Any]]) -> [String: Any] {
+        [
+            "model": model,
+            "previous_response_id": responseID,
+            "input": toolInputs,
+            "instructions": "Continue the task using the tool evidence. Use the smallest number of additional read-only inspections possible, then produce the result with concrete findings and performance observations.",
+            "parallel_tool_calls": true,
+            "tools": Self.toolDefinitions
+        ]
+    }
+
+    private let agentInstructions = """
+    You are the brain of Shayan Workspace. Act like a practical senior software engineer and agent.
+    Inspect and perform read-only work through tools instead of giving generic instructions.
+    For website sanity checks, inspect the live website and repository source when available.
+    Always include performance: response time, page/assets size, obvious bottlenecks, unnecessary requests, duplicated markup/assets, and likely mobile/iOS UX issues.
+    Be concise and action-oriented. Prefer tool evidence over guesses.
+    Do not use web search unless the user explicitly needs fresh external information.
+    Never claim that a file was changed, committed, deployed, or merged unless a write tool actually reports success.
+    """
+
     private func performRequest(body: [String: Any], apiKey: String) async throws -> ResponseEnvelope {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
