@@ -543,6 +543,7 @@ struct AICommandCenterView: View {
     @State private var emailTaskInFlight = false
     @State private var route: CoreDestination?
     @State private var showChats = false
+    @State private var showGeminiKeySetup = false
     @State private var lastHandledInput = ""
     @State private var lastHandledAt = Date.distantPast
     @Environment(\.dismiss) private var dismiss
@@ -631,11 +632,16 @@ struct AICommandCenterView: View {
         .navigationTitle("AI Manager")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { showChats = true } label: {
                     Image(systemName: "bubble.left.and.bubble.right")
                 }
                 .accessibilityLabel("Conversation history")
+
+                Button { showGeminiKeySetup = true } label: {
+                    Image(systemName: "key.fill")
+                }
+                .accessibilityLabel("Gemini API settings")
             }
         }
         .navigationDestination(item: $route) { destination in
@@ -643,6 +649,9 @@ struct AICommandCenterView: View {
         }
         .sheet(isPresented: $showChats) {
             AIConversationListView(history: history)
+        }
+        .sheet(isPresented: $showGeminiKeySetup) {
+            GeminiKeySetupView()
         }
         .task {
             voice.onFinalTranscript = { text in handleCommand(text) }
@@ -798,9 +807,7 @@ struct AICommandCenterView: View {
             openURL(url)
 
         case .unsupported:
-            history.append(.manager, text: newPlan.summary)
-            voice.reply = newPlan.summary
-            voice.speak(newPlan.summary)
+            Task { await respondWithGemini(history: history.currentMessages) }
         }
     }
 
@@ -896,6 +903,35 @@ struct AICommandCenterView: View {
         let selected = sentences.prefix(3).map { String($0) }.joined(separator: ". ")
         let summary = selected + (selected.hasSuffix(".") ? "" : ".")
         return summary.count > 420 ? String(summary.prefix(420)) + "…" : summary
+    }
+
+    private func respondWithGemini(history messages: [AIChatMessage]) async {
+        guard !GeminiAPIKeyStore.load().isEmpty else {
+            let response = "I can handle that conversationally with Gemini, but Gemini isn't connected yet. Tap the key icon above and paste your API key."
+            history.append(.manager, text: response)
+            voice.reply = response
+            voice.speak(response)
+            showGeminiKeySetup = true
+            return
+        }
+
+        do {
+            let answer = try await GeminiManagerClient.respond(
+                history: messages
+            )
+            let response = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !response.isEmpty else {
+                throw GeminiManagerError.emptyResponse
+            }
+            history.append(.manager, text: response)
+            voice.reply = response
+            voice.speak(response)
+        } catch {
+            let response = "Gemini couldn't respond right now. (error.localizedDescription)"
+            history.append(.manager, text: response)
+            voice.reply = response
+            voice.speak(response)
+        }
     }
 
     private func submitTypedCommand() {
@@ -1380,6 +1416,147 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         Task { @MainActor in
             self.isSpeaking = false
+        }
+    }
+}
+
+private enum GeminiManagerError: LocalizedError {
+    case missingKey
+    case invalidResponse
+    case emptyResponse
+    case http(status: Int, message: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingKey:
+            return "Gemini API key is not configured."
+        case .invalidResponse:
+            return "Gemini returned an invalid response."
+        case .emptyResponse:
+            return "Gemini returned an empty response."
+        case .http(let status, let message):
+            return "Gemini API returned HTTP \(status). \(message)"
+        }
+    }
+}
+
+private enum GeminiManagerClient {
+    private static let endpoint = URL(string: "https://generativelanguage.googleapis.com/v1beta/interactions")!
+    private static let model = "gemini-3.8-flash"
+
+    private static let systemInstruction = """
+    You are the conversational AI Manager inside Shayan Core, a personal iPhone command centre.
+
+    Behave naturally, like a capable conversational assistant. Do not require a greeting and do not force a scripted sequence.
+    Understand follow-up messages from the conversation context. If a request is ambiguous or missing an important detail, ask a short clarification question instead of guessing.
+    Be concise, warm and direct. Match the user's tone and language where practical.
+    You are not the coding agent and you do not review or modify source code. Coding work belongs to Workspace.
+    You are responsible for helping the user manage and use Shayan Core. The app has capabilities such as navigation, Gmail, email drafting, voice control, reminders, portfolio/dashboard access, learning and other tools.
+    Do not claim that an action was performed unless the app has actually executed that action.
+    Do not invent access to data or capabilities that were not provided to you.
+    """
+
+    static func respond(history messages: [AIChatMessage]) async throws -> String {
+        let key = GeminiAPIKeyStore.load()
+        guard !key.isEmpty else { throw GeminiManagerError.missingKey }
+
+        let recent = messages.suffix(18).map { message -> String in
+            let role = message.role == .user ? "User" : "AI Manager"
+            return "(role): (message.text)"
+        }.joined(separator: "\n")
+
+        let requestBody: [String: Any] = [
+            "model": model,
+            "store": false,
+            "system_instruction": systemInstruction,
+            "input": "Conversation context:\n(recent)\n\nRespond to the user's latest message naturally.",
+            "generation_config": [
+                "thinking_level": "low",
+                "temperature": 0.7,
+                "max_output_tokens": 500
+            ]
+        ]
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GeminiManagerError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
+                .flatMap { $0["error"] as? [String: Any] }
+                .flatMap { $0["message"] as? String }
+                ?? String(data: data, encoding: .utf8)
+                ?? "Unknown error"
+            throw GeminiManagerError.http(status: httpResponse.statusCode, message: message)
+        }
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let output = json["output_text"] as? String else {
+            throw GeminiManagerError.invalidResponse
+        }
+
+        return output
+    }
+}
+
+private struct GeminiKeySetupView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var apiKey = GeminiAPIKeyStore.load()
+    @State private var saveError = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    SecureField("Paste Gemini API key", text: $apiKey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                } header: {
+                    Text("Gemini API")
+                } footer: {
+                    Text("The key is stored in iPhone Keychain and is never written to the GitHub repository. For production, a backend proxy is safer because mobile API keys can be extracted.")
+                }
+
+                if !saveError.isEmpty {
+                    Section {
+                        Text(saveError)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                Section {
+                    Button("Save Gemini Key") {
+                        do {
+                            try GeminiAPIKeyStore.save(apiKey)
+                            dismiss()
+                        } catch {
+                            saveError = "Could not save the key securely."
+                        }
+                    }
+                    .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    if !GeminiAPIKeyStore.load().isEmpty {
+                        Button("Remove Gemini Key", role: .destructive) {
+                            try? GeminiAPIKeyStore.delete()
+                            apiKey = ""
+                        }
+                    }
+                }
+            }
+            .navigationTitle("AI Manager AI")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
         }
     }
 }
