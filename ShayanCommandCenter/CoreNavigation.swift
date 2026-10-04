@@ -11,6 +11,7 @@ enum CoreDestination: Hashable {
     case learning
     case protectedNotes
     case settings
+    case qrScanner
 }
 
 struct CoreDestinationView: View {
@@ -40,6 +41,8 @@ struct CoreDestinationView: View {
             PlainTextView()
         case .settings:
             SettingsView()
+        case .qrScanner:
+            QRScannerScreen()
         }
     }
 }
