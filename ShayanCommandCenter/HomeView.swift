@@ -114,8 +114,6 @@ struct HomeView: View {
                 switch url.host {
                 case "command":
                     navigationPath = [.coreCommand]
-                case "reminders":
-                    navigationPath = [.reminders]
                 default:
                     break
                 }
