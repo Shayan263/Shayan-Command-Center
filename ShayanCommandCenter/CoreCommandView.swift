@@ -431,8 +431,12 @@ private struct AICommandEngine {
     }
 
     private func isBasicAssistantCommand(_ text: String) -> Bool {
-        ["what can you do", "help", "who are you", "what are you", "thank you", "thanks", "repeat that", "say that again", "cancel"]
-            .contains(where: { text == $0 || text.contains($0) })
+        [
+            "what can you do", "help", "who are you", "what are you",
+            "how are you", "how's it going", "how are things",
+            "thank you", "thanks", "repeat that", "say that again", "cancel"
+        ]
+        .contains(where: { text == $0 || text.contains($0) })
     }
 
     private func basicAssistantReply(for text: String) -> String {
@@ -441,6 +445,9 @@ private struct AICommandEngine {
         }
         if text.contains("who are you") || text.contains("what are you") {
             return "I'm Shayan Core's AI Manager. Give me the task in your own words."
+        }
+        if text.contains("how are you") || text.contains("how's it going") || text.contains("how are things") {
+            return "I'm doing well and ready to help. What would you like to work on?"
         }
         if text.contains("thank") { return "Anytime. What's next?" }
         if text.contains("repeat") || text.contains("say that again") { return "I can repeat the last response from this conversation." }
@@ -1634,12 +1641,47 @@ private enum GeminiManagerClient {
             throw GeminiManagerError.http(status: httpResponse.statusCode, message: message)
         }
 
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let output = json["output_text"] as? String else {
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw GeminiManagerError.invalidResponse
         }
 
-        return output
+        // The REST Interactions API returns an Interaction resource. The convenient
+        // "output_text" property exists in Google's SDKs, but it is not a top-level
+        // JSON field in the raw REST response. Text is returned inside model_output
+        // steps, so extract it from the actual REST shape.
+        if let output = json["output_text"] as? String,
+           !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return output
+        }
+
+        if let steps = json["steps"] as? [[String: Any]] {
+            let textBlocks = steps.flatMap { step -> [String] in
+                guard step["type"] as? String == "model_output",
+                      let content = step["content"] as? [[String: Any]] else {
+                    return []
+                }
+
+                return content.compactMap { block in
+                    guard block["type"] as? String == "text",
+                          let text = block["text"] as? String else {
+                        return nil
+                    }
+                    let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return value.isEmpty ? nil : value
+                }
+            }
+
+            let output = textBlocks.joined(separator: "\n")
+            if !output.isEmpty {
+                return output
+            }
+        }
+
+        if let status = json["status"] as? String, status != "completed" {
+            throw GeminiManagerError.invalidResponse
+        }
+
+        throw GeminiManagerError.invalidResponse
     }
 }
 
