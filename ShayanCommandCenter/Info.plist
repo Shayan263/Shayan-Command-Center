@@ -1,19 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>Google OAuth</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.shayan.commandcentre</string>
-			</array>
-		</dict>
-	</array>
-	<key>CFBundleDevelopmentRegion</key>
+<dict>	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Shayan Core</string>
@@ -34,12 +22,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Shayan Core uses the camera to scan QR codes.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Shayan Core uses the microphone so you can talk to AI Command Centre.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Shayan Core uses speech recognition to understand your voice commands.</string>
-	<key>UILaunchScreen</key>
+	<string>Shayan Core uses the camera to scan QR codes.</string>	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
