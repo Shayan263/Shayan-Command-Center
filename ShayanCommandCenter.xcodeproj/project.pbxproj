@@ -205,7 +205,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000000004 /* Assets.xcassets in Resources */,
-				C00000000000000000000001 /* AI Automations.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,12 +239,8 @@
 				A00000000000000000000005 /* AppMenuViews.swift in Sources */,
 				A00000000000000000000006 /* AppSecurity.swift in Sources */,
 				A00000000000000000000007 /* CoreNavigation.swift in Sources */,
-				A00000000000000000000009 /* CoreCommandView.swift in Sources */,
-				A0000000000000000000000D /* CoreSentinelView.swift in Sources */,
 				A0000000000000000000000B /* InAppBrowserView.swift in Sources */,
 				A0000000000000000000000C /* ProfileView.swift in Sources */,
-				A00000000000000000000022 /* WorkspaceView.swift in Sources */,
-				A00000000000000000000024 /* GmailTool.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
