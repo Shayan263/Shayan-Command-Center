@@ -554,33 +554,14 @@ struct AICommandCenterView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 16) {
-                    Text("AI MANAGER")
-                        .font(.caption.weight(.bold))
-                        .tracking(1.5)
-                        .foregroundStyle(.blue)
-
-                    VoiceOrb(voice: voice) { Task { await toggleVoice() } }
-                        .frame(height: 240)
-
-                    Button {
-                        Task { await toggleVoice() }
-                    } label: {
-                        Label(
-                            voice.isListening || voice.isSpeaking ? "Turn Voice Off" : "Start Voice",
-                            systemImage: voice.isListening || voice.isSpeaking ? "mic.slash.fill" : "mic.fill"
-                        )
-                        .font(.subheadline.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel(voice.isListening || voice.isSpeaking ? "Turn voice off" : "Start voice")
-
+                LazyVStack(spacing: 14) {
                     if history.currentMessages.isEmpty {
-                        Text("Start with the task. No greeting or fixed sequence is required.")
+                        Text("Ask anything or start a task. You can type or tap the microphone.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.horizontal)
+                            .padding(.top, 24)
                     }
 
                     ForEach(history.currentMessages) { message in
@@ -594,41 +575,66 @@ struct AICommandCenterView: View {
 
                     if let plan, plan.requiresApproval {
                         planCard(plan)
+                            .id("approval-card")
                     }
-
-                    HStack(alignment: .bottom, spacing: 8) {
-                        TextField("Message AI Manager…", text: $command, axis: .vertical)
-                            .textFieldStyle(.plain)
-                            .padding(13)
-                            .onSubmit { submitTypedCommand() }
-
-                        Button {
-                            submitTypedCommand()
-                        } label: {
-                            Image(systemName: "arrow.up.circle.fill").font(.system(size: 28))
-                        }
-                        .disabled(command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .padding(.bottom, 8)
-                    }
-                    .padding(.horizontal, 5)
-                    .background(Color.primary.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
                 }
-                .padding(.horizontal, 18)
+                .padding(.horizontal, 14)
                 .padding(.top, 12)
-                .padding(.bottom, 24)
+                .padding(.bottom, 16)
             }
             .scrollDismissesKeyboard(.interactively)
-            .safeAreaPadding(.bottom, 8)
+            .onAppear {
+                scrollToLatest(proxy, animated: false)
+            }
             .onChange(of: history.currentMessages.count) {
-                if let last = history.currentMessages.last {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo(last.id, anchor: .bottom)
-                    }
-                }
+                scrollToLatest(proxy, animated: true)
+            }
+            .onChange(of: history.currentSessionID) {
+                scrollToLatest(proxy, animated: false)
+            }
+            .onChange(of: plan?.summary) {
+                scrollToLatest(proxy, animated: true)
             }
         }
         .background(Color(.systemBackground))
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack(alignment: .bottom, spacing: 8) {
+                TextField("Message AI Manager…", text: $command, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...5)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .onSubmit { submitTypedCommand() }
+
+                let hasText = !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                Button {
+                    if hasText {
+                        submitTypedCommand()
+                    } else {
+                        Task { await toggleVoice() }
+                    }
+                } label: {
+                    Image(systemName: hasText
+                          ? "arrow.up.circle.fill"
+                          : (voice.isVoiceModeEnabled ? "mic.slash.fill" : "mic.fill"))
+                        .font(.system(size: 27, weight: .semibold))
+                        .foregroundStyle(hasText ? .blue : (voice.isVoiceModeEnabled ? .red : .blue))
+                        .frame(width: 38, height: 38)
+                }
+                .accessibilityLabel(hasText
+                                    ? "Send message"
+                                    : (voice.isVoiceModeEnabled ? "Turn voice off" : "Start voice"))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .top) {
+                Divider()
+            }
+        }
+        .navigationTitle("AI Manager")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
         .navigationTitle("AI Manager")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
