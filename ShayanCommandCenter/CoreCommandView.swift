@@ -635,9 +635,6 @@ struct AICommandCenterView: View {
         .navigationTitle("AI Manager")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-        .navigationTitle("AI Manager")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { showChats = true } label: {
                     Image(systemName: "bubble.left.and.bubble.right")
