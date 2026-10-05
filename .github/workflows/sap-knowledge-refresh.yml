@@ -1,0 +1,91 @@
+name: SAP Knowledge Refresh
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-sap-knowledge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Refresh SAP source discovery
+        run: |
+          python3 - <<'PY'
+          import json, re, urllib.request
+          from datetime import datetime, timezone, timedelta
+
+          sources = [
+            ("SAP Community ABAP", "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-sessions-at-devtoberfest-2026/ba-p/14481756"),
+            ("SAP Community Joule", "https://community.sap.com/t5/technology-blog-posts-by-sap/sap-joule-for-developers-end-of-the-promotional-period-and-the-path-forward/bc-p/14491008/highlight/true"),
+            ("SAP Community ABAP AI", "https://community.sap.com/t5/technology-blog-posts-by-sap/abap-ai-chapter-3-we-go-agentic/ba-p/14391469")
+          ]
+
+          def fetch(url):
+              req = urllib.request.Request(url, headers={"User-Agent": "Shayan-SAP-Knowledge-Agent/1.0"})
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  return r.read().decode("utf-8", "ignore")
+
+          discovered = []
+          for name, url in sources:
+              try:
+                  html = fetch(url)
+                  match = re.search(r'<title[^>]*>(.*?)</title>', html, re.I | re.S)
+                  title = re.sub(r'\s+', ' ', match.group(1)).strip() if match else name
+                  discovered.append({
+                      "title": title[:180],
+                      "category": "SAP research",
+                      "priority": "WATCH",
+                      "why_it_matters": "Fresh SAP source detected by the six-hour refresh.",
+                      "shayan_relevance": "Evaluate against Shayan's ABAP, S/4HANA, RAP, CDS, BTP and integration experience.",
+                      "recommended_action": "Review and rank this source during the next research pass.",
+                      "source_name": name,
+                      "source_url": url,
+                      "published_or_updated_at": None
+                  })
+              except Exception as exc:
+                  print(f"Source unavailable: {url}: {exc}")
+
+          path = "data/sap-knowledge.json"
+          with open(path, "r", encoding="utf-8") as f:
+              current = json.load(f)
+
+          curated = [x for x in current.get("items", []) if x.get("priority") in {"NOW", "NEXT"}]
+          merged = curated + discovered
+          seen = set()
+          final = []
+          for item in merged:
+              key = (item.get("title"), item.get("source_url"))
+              if key not in seen:
+                  seen.add(key)
+                  final.append(item)
+
+          current["generated_at"] = datetime.now(timezone(timedelta(hours=5, minutes=30))).isoformat()
+          current["items"] = final[:10]
+
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(current, f, indent=2, ensure_ascii=False)
+              f.write("\n")
+          PY
+
+      - name: Publish identical feed to root and main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sap-knowledge.json
+          if git diff --cached --quiet; then
+            echo "No SAP knowledge changes detected."
+            exit 0
+          fi
+          git commit -m "Refresh SAP knowledge feed"
+          git push origin HEAD:main
+          git push origin HEAD:root
