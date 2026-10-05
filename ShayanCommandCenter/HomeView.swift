@@ -249,25 +249,11 @@ struct HomeView: View {
                     }
                     .accessibilityLabel(showSideMenu ? "Close command sidebar" : "Open command sidebar")
                 }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(value: CoreDestination.coreCommand) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.body.weight(.semibold))
-                            .frame(minWidth: 36, minHeight: 36)
-                    }
-                    .accessibilityLabel("Open Core Command")
-                }
-            }
             .navigationDestination(for: CoreDestination.self) {
                 CoreDestinationView(
                     destination: $0,
                     openExternal: { browserDestination = BrowserDestination(url: $0) }
                 )
-            }
-            .onOpenURL { url in
-                guard url.scheme == "shayan-core" else { return }
-                if url.host == "command" { navigationPath = [.coreCommand] }
             }
             .task {
                 networkMonitor.start()
