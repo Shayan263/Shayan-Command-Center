@@ -1146,6 +1146,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var silenceTask: Task<Void, Never>?
+    private var restartTask: Task<Void, Never>?
     private var turnCommitted = false
     private var hasAuthorized = false
     private var shouldContinueConversation = true
@@ -1162,10 +1163,14 @@ private final class VoiceConversationController: NSObject, ObservableObject {
         guard !isListening else { return }
 
         let authorized = await ensurePermissions()
-        guard authorized else { return }
+        guard authorized else {
+            voiceModeEnabled = false
+            isVoiceModeEnabled = false
+            return
+        }
 
         guard speechRecognizer?.isAvailable != false else {
-            fail("Speech recognition is temporarily unavailable.")
+            scheduleListeningRestart()
             return
         }
 
@@ -1206,8 +1211,12 @@ private final class VoiceConversationController: NSObject, ObservableObject {
                         }
                     }
 
-                    if error != nil, self.isListening, !self.turnCommitted {
-                        self.commitTurn()
+                    if error != nil {
+                        if self.isListening, !self.turnCommitted, !self.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            self.commitTurn()
+                        } else if self.voiceModeEnabled {
+                            self.scheduleListeningRestart()
+                        }
                     }
                 }
             }
@@ -1223,8 +1232,15 @@ private final class VoiceConversationController: NSObject, ObservableObject {
             try audioEngine.start()
             armSilenceTimeout(initial: true)
         } catch {
-            stopListening()
-            fail("I couldn't start the microphone.")
+            endRecognition()
+            if voiceModeEnabled {
+                phaseTitle = ""
+                phaseSubtitle = "Reconnecting microphone…"
+                iconName = "waveform"
+                scheduleListeningRestart()
+            } else {
+                fail("I couldn't start the microphone.")
+            }
         }
     }
 
@@ -1234,6 +1250,8 @@ private final class VoiceConversationController: NSObject, ObservableObject {
         shouldContinueConversation = false
         silenceTask?.cancel()
         silenceTask = nil
+        restartTask?.cancel()
+        restartTask = nil
         endRecognition()
         setReady()
     }
@@ -1244,6 +1262,8 @@ private final class VoiceConversationController: NSObject, ObservableObject {
         voiceModeEnabled = false
         isVoiceModeEnabled = false
         shouldContinueConversation = false
+        restartTask?.cancel()
+        restartTask = nil
         endRecognition()
         setReady()
     }
@@ -1283,6 +1303,8 @@ private final class VoiceConversationController: NSObject, ObservableObject {
         shouldContinueConversation = false
         silenceTask?.cancel()
         silenceTask = nil
+        restartTask?.cancel()
+        restartTask = nil
         synthesizer.stopSpeaking(at: .immediate)
         endRecognition()
     }
@@ -1359,6 +1381,17 @@ private final class VoiceConversationController: NSObject, ObservableObject {
             await MainActor.run {
                 self?.commitTurn()
             }
+        }
+    }
+
+    private func scheduleListeningRestart() {
+        guard voiceModeEnabled, !isListening, !isSpeaking else { return }
+        restartTask?.cancel()
+        restartTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            guard let self else { return }
+            await self.startListening()
         }
     }
 
