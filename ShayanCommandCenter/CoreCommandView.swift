@@ -544,6 +544,7 @@ struct AICommandCenterView: View {
     @State private var route: CoreDestination?
     @State private var showChats = false
     @State private var showGeminiKeySetup = false
+    @State private var isGeminiThinking = false
     @State private var lastHandledInput = ""
     @State private var lastHandledAt = Date.distantPast
     @Environment(\.dismiss) private var dismiss
@@ -576,6 +577,23 @@ struct AICommandCenterView: View {
                     if let plan, plan.requiresApproval {
                         planCard(plan)
                             .id("approval-card")
+                    }
+
+                    if isGeminiThinking {
+                        HStack {
+                            HStack(spacing: 5) {
+                                Circle().frame(width: 6, height: 6)
+                                Circle().frame(width: 6, height: 6)
+                                Circle().frame(width: 6, height: 6)
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 11)
+                            .background(Color.primary.opacity(0.06))
+                            .clipShape(Capsule())
+                            Spacer(minLength: 36)
+                        }
+                        .transition(.opacity)
                     }
                 }
                 .padding(.horizontal, 14)
@@ -917,6 +935,9 @@ struct AICommandCenterView: View {
             showGeminiKeySetup = true
             return
         }
+
+        isGeminiThinking = true
+        defer { isGeminiThinking = false }
 
         do {
             let answer = try await GeminiManagerClient.respond(
