@@ -686,6 +686,19 @@ struct AICommandCenterView: View {
         }
     }
 
+    private func scrollToLatest(_ proxy: ScrollViewProxy, animated: Bool) {
+        guard let last = history.currentMessages.last else { return }
+        DispatchQueue.main.async {
+            if animated {
+                withAnimation(.easeOut(duration: 0.18)) {
+                    proxy.scrollTo(last.id, anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo(last.id, anchor: .bottom)
+            }
+        }
+    }
+
     @ViewBuilder
     private func conversationBubble(title: String, text: String, isUser: Bool) -> some View {
         HStack {
