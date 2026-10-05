@@ -8,6 +8,7 @@ enum CoreDestination: Hashable {
     case protectedNotes
     case settings
     case qrScanner
+    case sapKnowledge
 }
 
 struct CoreDestinationView: View {
@@ -31,6 +32,8 @@ struct CoreDestinationView: View {
             SettingsView()
         case .qrScanner:
             QRScannerScreen()
+        case .sapKnowledge:
+            SAPKnowledgeAgentView()
         }
     }
 }
