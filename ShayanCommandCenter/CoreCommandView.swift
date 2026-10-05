@@ -1108,6 +1108,7 @@ private struct VoiceWave: View {
 private final class VoiceConversationController: NSObject, ObservableObject {
     @Published var isListening = false
     @Published var isSpeaking = false
+    @Published private(set) var isVoiceModeEnabled = false
     @Published var transcript = ""
     @Published var reply = ""
     @Published var statusText = ""
@@ -1133,6 +1134,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
 
     func startListening() async {
         voiceModeEnabled = true
+        isVoiceModeEnabled = true
         if isSpeaking {
             interrupt()
         }
@@ -1207,6 +1209,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
 
     func stopListening() {
         voiceModeEnabled = false
+        isVoiceModeEnabled = false
         shouldContinueConversation = false
         silenceTask?.cancel()
         silenceTask = nil
@@ -1218,12 +1221,14 @@ private final class VoiceConversationController: NSObject, ObservableObject {
         synthesizer.stopSpeaking(at: .immediate)
         isSpeaking = false
         voiceModeEnabled = false
+        isVoiceModeEnabled = false
         shouldContinueConversation = false
         endRecognition()
         setReady()
     }
 
     func speak(_ text: String) {
+        guard voiceModeEnabled else { return }
         silenceTask?.cancel()
         endRecognition()
         shouldContinueConversation = true
@@ -1253,6 +1258,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
 
     func shutdown() {
         voiceModeEnabled = false
+        isVoiceModeEnabled = false
         shouldContinueConversation = false
         silenceTask?.cancel()
         silenceTask = nil
@@ -1325,7 +1331,7 @@ private final class VoiceConversationController: NSObject, ObservableObject {
 
     private func armSilenceTimeout(initial: Bool = false) {
         silenceTask?.cancel()
-        let delay: Duration = initial ? .seconds(1.5) : .seconds(0.78)
+        let delay: Duration = initial ? .seconds(1.8) : .seconds(1.15)
         silenceTask = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
