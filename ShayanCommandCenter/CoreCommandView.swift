@@ -1470,8 +1470,9 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
             self.statusText = ""
 
             guard self.shouldContinueConversation, self.voiceModeEnabled else { return }
-            try? await Task.sleep(for: .milliseconds(60))
+            try? await Task.sleep(for: .milliseconds(120))
             guard self.shouldContinueConversation, self.voiceModeEnabled else { return }
+            try? AVAudioSession.sharedInstance().setActive(true)
             await self.startListening()
         }
     }
