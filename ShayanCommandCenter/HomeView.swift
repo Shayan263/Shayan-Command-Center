@@ -102,13 +102,6 @@ struct HomeView: View {
                         }
 
 
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(Color.purple.opacity(0.15), lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                        }
-                        .buttonStyle(.plain)
-
                         if isOffline {
                             HStack(spacing: 9) {
                                 Image(systemName: "wifi.slash")
