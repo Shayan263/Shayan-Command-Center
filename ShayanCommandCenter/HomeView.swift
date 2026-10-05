@@ -242,6 +242,7 @@ struct HomeView: View {
                     }
                     .accessibilityLabel(showSideMenu ? "Close command sidebar" : "Open command sidebar")
                 }
+            }
             .navigationDestination(for: CoreDestination.self) {
                 CoreDestinationView(
                     destination: $0,
