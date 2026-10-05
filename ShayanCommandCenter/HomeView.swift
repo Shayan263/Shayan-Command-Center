@@ -101,83 +101,7 @@ struct HomeView: View {
                             }
                         }
 
-                        NavigationLink(value: CoreDestination.aiCommandCenter) {
-                            HStack(spacing: 13) {
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [.blue, .cyan],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                    Image(systemName: "waveform")
-                                        .font(.system(size: 25, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                }
-                                .frame(width: 64, height: 64)
-                                .shadow(color: .blue.opacity(0.22), radius: 12)
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("AI COMMAND CENTRE")
-                                        .font(.headline.weight(.bold))
-                                        .tracking(0.7)
-                                    Text("Tap once. Talk naturally. Shayan Core listens, thinks and replies.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(12)
-                            .background(Color.blue.opacity(0.075))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(Color.blue.opacity(0.16), lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                        }
-                        .buttonStyle(.plain)
-
-                        NavigationLink(value: CoreDestination.workspace) {
-                            HStack(spacing: 13) {
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [.purple, .blue],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                    Image(systemName: "terminal.fill")
-                                        .font(.system(size: 22, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                }
-                                .frame(width: 56, height: 56)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("WORKSPACE")
-                                        .font(.headline.weight(.bold))
-                                        .tracking(0.7)
-                                    Text("ChatGPT-powered coding & agent work")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
-                                }
-
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(12)
-                            .background(Color.purple.opacity(0.07))
-                            .overlay(
                                 RoundedRectangle(cornerRadius: 20)
                                     .stroke(Color.purple.opacity(0.15), lineWidth: 1)
                             )
@@ -245,25 +169,6 @@ struct HomeView: View {
                             }
                             .buttonStyle(.plain)
 
-                            NavigationLink { LearningHubPreviewView() } label: {
-                                CompactAppCard(
-                                    title: "Learning Hub",
-                                    subtitle: "AI Automations",
-                                    icon: "graduationcap.fill",
-                                    badge: "LIVE"
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            NavigationLink(value: CoreDestination.sentinel) {
-                                CompactAppCard(
-                                    title: "Core Sentinel",
-                                    subtitle: "Security intelligence",
-                                    icon: "shield.checkered",
-                                    badge: "SECURE"
-                                )
-                            }
-                            .buttonStyle(.plain)
                         }
 
                         NavigationLink { ResumeBuilderPreviewView() } label: {
@@ -667,7 +572,6 @@ struct CommandSidebar: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("SHAYAN CORE").font(.caption.weight(.bold)).tracking(1.4).foregroundStyle(.blue)
-                    Text("AI Manager").font(.title2.bold())
                 }
                 Spacer()
                 Button { withAnimation(.easeInOut(duration: 0.22)) { isPresented = false } } label: {
@@ -682,17 +586,11 @@ struct CommandSidebar: View {
                 VStack(alignment: .leading, spacing: 6) {
                     SidebarSectionTitle("PROFILE")
                     NavigationLink(value: CoreDestination.profile) { SidebarLabel(title: "My Profile", subtitle: "Professional identity & skills", icon: "person.crop.circle.fill") }.buttonStyle(.plain)
-                    SidebarSectionTitle("WORKSPACE")
-                    NavigationLink(value: CoreDestination.workspace) { SidebarLabel(title: "Workspace", subtitle: "ChatGPT + code work", icon: "terminal.fill") }.buttonStyle(.plain)
-                    SidebarSectionTitle("COMMAND")
-                    NavigationLink(value: CoreDestination.coreCommand) { SidebarLabel(title: "Core Command", subtitle: "Search your Core actions", icon: "magnifyingglass") }.buttonStyle(.plain)
+                    SidebarSectionTitle("TOOLS")
                     NavigationLink(value: CoreDestination.quickActions) { SidebarLabel(title: "Quick Actions", subtitle: "Open, copy & share", icon: "bolt.fill") }.buttonStyle(.plain)
                     NavigationLink(value: CoreDestination.insights) { SidebarLabel(title: "Insights", subtitle: "System & portfolio status", icon: "chart.bar.xaxis") }.buttonStyle(.plain)
-                    SidebarSectionTitle("SECURITY")
-                    NavigationLink(value: CoreDestination.sentinel) { SidebarLabel(title: "Core Sentinel", subtitle: "AI Security Intelligence", icon: "shield.checkered") }.buttonStyle(.plain)
                     SidebarSectionTitle("MODULES")
                     NavigationLink(value: CoreDestination.resume) { SidebarLabel(title: "Shayan Resume Builder", subtitle: "Build & tailor resumes", icon: "doc.text.magnifyingglass") }.buttonStyle(.plain)
-                    NavigationLink(value: CoreDestination.learning) { SidebarLabel(title: "Shayan Learning Hub", subtitle: "AI Automations documentation", icon: "graduationcap.fill") }.buttonStyle(.plain)
                     SidebarSectionTitle("PERSONAL")
                     NavigationLink(value: CoreDestination.protectedNotes) { SidebarLabel(title: "Protected Notes", subtitle: "Secure Keychain notes", icon: "lock.text") }.buttonStyle(.plain)
                     SidebarSectionTitle("APP")
