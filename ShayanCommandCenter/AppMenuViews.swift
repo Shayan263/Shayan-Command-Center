@@ -1,7 +1,6 @@
 import SwiftUI
 import UIKit
 import AVFoundation
-import PDFKit
 
 struct QuickActionsView: View {
     @State private var copied = false
@@ -216,41 +215,8 @@ struct ResumeBuilderPreviewView: View {
     }
 }
 
-struct LearningHubPreviewView: View {
-    var body: some View {
-        LearningHubPDFView()
-    }
-}
-
-struct LearningHubPDFView: View {
-    var body: some View {
-        PDFDocumentView(resourceName: "AI Automations", resourceExtension: "pdf")
-            .background(Color(.systemBackground))
-            .navigationTitle("AI Automations")
-            .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct PDFDocumentView: UIViewRepresentable {
-    let resourceName: String
-    let resourceExtension: String
-
-    func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
-        view.autoScales = true
-        view.displayMode = .singlePageContinuous
-        view.displayDirection = .vertical
-        view.backgroundColor = .systemBackground
-        if let url = Bundle.main.url(forResource: resourceName, withExtension: resourceExtension),
-           let document = PDFDocument(url: url) {
-            view.document = document
-            view.usePageViewController(true, withViewOptions: nil)
-        }
-        return view
-    }
-
-    func updateUIView(_ uiView: PDFView, context: Context) {}
-}
+// DISABLED FOR NOW — AI Automations learning/document feature is paused.
+// struct LearningHubPreviewView: View { ... retained in git history for later reactivation. }
 
 struct QRScannerScreen: View {
     @State private var result: String?
