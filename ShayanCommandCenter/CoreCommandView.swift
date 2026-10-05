@@ -927,7 +927,7 @@ struct AICommandCenterView: View {
             voice.reply = response
             voice.speak(response)
         } catch {
-            let response = "Gemini couldn't respond right now. (error.localizedDescription)"
+            let response = "Gemini couldn't respond right now. \(error.localizedDescription)"
             history.append(.manager, text: response)
             voice.reply = response
             voice.speak(response)
@@ -1462,14 +1462,14 @@ private enum GeminiManagerClient {
 
         let recent = messages.suffix(18).map { message -> String in
             let role = message.role == .user ? "User" : "AI Manager"
-            return "(role): (message.text)"
+            return "\(role): \(message.text)"
         }.joined(separator: "\n")
 
         let requestBody: [String: Any] = [
             "model": model,
             "store": false,
             "system_instruction": systemInstruction,
-            "input": "Conversation context:\n(recent)\n\nRespond to the user's latest message naturally.",
+            "input": "Conversation context:\n\(recent)\n\nRespond to the user's latest message naturally.",
             "generation_config": [
                 "thinking_level": "low",
                 "temperature": 0.7,
