@@ -116,7 +116,7 @@ struct SettingsView: View {
             }
             Section("Security") {
                 Label("iOS device security", systemImage: "lock.shield")
-                Text("Shayan Core does not add a separate Face ID lock. Your iPhone's existing device security protects the app and its Keychain data.")
+                Text("Protected Notes require your iPhone passcode, Face ID, or Touch ID. Notes are stored in the device Keychain.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             Section("Privacy & Network") {
@@ -145,14 +145,38 @@ struct SettingsView: View {
 }
 
 struct PlainTextView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var text = ""
+    @State private var isUnlocked = false
+    @State private var isAuthenticating = false
     @State private var showClearConfirmation = false
     @State private var showSaveError = false
     @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
-        TextEditor(text: $text)
-            .font(.body.monospaced())
+        Group {
+            if isUnlocked {
+                TextEditor(text: $text)
+                    .font(.body.monospaced())
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.blue)
+                    Text("Protected Notes")
+                        .font(.title2.bold())
+                    Text("Authenticate with your iPhone passcode, Face ID, or Touch ID to access this protected content.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                    Button(isAuthenticating ? "Authenticating…" : "Unlock") {
+                        Task { await unlock() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isAuthenticating)
+                }
+                .padding(24)
+            }
+        }
             .padding(.horizontal, 8)
             .navigationTitle("Protected Notes")
             .navigationBarTitleDisplayMode(.inline)
@@ -167,7 +191,16 @@ struct PlainTextView: View {
                 }
             }
             .task {
-                text = await SecureNotesStore.loadAsync()
+                await unlock()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active {
+                    isUnlocked = false
+                    text = ""
+                    saveTask?.cancel()
+                } else if !isUnlocked {
+                    Task { await unlock() }
+                }
             }
             .onChange(of: text) { _, newValue in
                 saveTask?.cancel()
@@ -189,6 +222,11 @@ struct PlainTextView: View {
                     try? await SecureNotesStore.saveAsync(finalText)
                 }
             }
+            .onDisappear {
+                isUnlocked = false
+                text = ""
+                saveTask?.cancel()
+            }
             .alert("Could not save note", isPresented: $showSaveError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -204,6 +242,14 @@ struct PlainTextView: View {
             } message: {
                 Text("This will remove the protected note from this device.")
             }
+    }
+    private func unlock() async {
+        guard !isUnlocked, !isAuthenticating else { return }
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+        guard await AppSecurity.authenticateUser(reason: "Unlock your protected notes in Shayan Core.") else { return }
+        text = await SecureNotesStore.loadAsync()
+        isUnlocked = true
     }
 }
 
