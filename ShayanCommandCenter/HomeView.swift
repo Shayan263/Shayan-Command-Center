@@ -1,4 +1,5 @@
 import SwiftUI
+import ElevenLabs
 import Combine
 import Network
 
@@ -677,6 +678,7 @@ private struct ShayanCoreMark: View {
 struct HomeView: View {
     @State private var showCoreHome = false
     @State private var interfaceState: JarvisInterfaceState = .idle
+    @StateObject private var jarvisVoice = JarvisVoiceManager()
     @State private var pulse = false
     @State private var rotation: Double = 0
     @State private var innerRotation: Double = 0
@@ -735,6 +737,11 @@ struct HomeView: View {
             .onAppear {
                 pulse = true
                 startAnimations()
+            }
+            .onReceive(jarvisVoice.$state) { state in
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    interfaceState = state
+                }
             }
         }
     }
@@ -926,8 +933,12 @@ struct HomeView: View {
                 controlButton(systemName: "message", title: "CHAT") {
                     interfaceState = .thinking
                 }
-                controlButton(systemName: "mic", title: "VOICE") {
-                    interfaceState = interfaceState == .listening ? .speaking : .listening
+                controlButton(systemName: jarvisVoice.isConnected ? "phone.down.fill" : "mic", title: jarvisVoice.isConnected ? "END" : "VOICE") {
+                    if jarvisVoice.isConnected {
+                        jarvisVoice.end()
+                    } else {
+                        Task { await jarvisVoice.start() }
+                    }
                 }
                 controlButton(systemName: "square.grid.2x2", title: "CORE") {
                     openCore()
@@ -994,6 +1005,47 @@ struct HomeView: View {
     private func startAnimations() {
         withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) { rotation = 360 }
         withAnimation(.linear(duration: 11).repeatForever(autoreverses: false)) { innerRotation = 360 }
+    }
+}
+
+
+@MainActor
+private final class JarvisVoiceManager: ObservableObject {
+    @Published var state: JarvisInterfaceState = .idle
+    @Published var isConnected = false
+    @Published var errorMessage: String?
+
+    private var conversation: Conversation?
+
+    func start() async {
+        errorMessage = nil
+        state = .listening
+
+        do {
+            let config = ConversationConfig(
+                conversationOverrides: ConversationOverrides(textOnly: false)
+            )
+            let session = try await ElevenLabs.startConversation(
+                agentId: "agent_2101m4976e28f6dvdxxar2cvwemg",
+                config: config
+            )
+            conversation = session
+            isConnected = true
+            state = .listening
+        } catch {
+            isConnected = false
+            state = .idle
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func end() {
+        Task {
+            await conversation?.endConversation()
+            conversation = nil
+            isConnected = false
+            state = .idle
+        }
     }
 }
 
