@@ -19,6 +19,7 @@
 		A0000000000000000000000C /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001F /* ProfileView.swift */; };
 		A00000000000000000000027 /* SAPKnowledgeAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* SAPKnowledgeAgentView.swift */; };
 		A00000000000000000000029 /* SecurityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* SecurityPolicy.swift */; };
+		A0000000000000000000002A /* LegalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002B /* LegalView.swift */; };
 		A00000000000000000000022 /* WorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* WorkspaceView.swift */; };
 		A00000000000000000000024 /* GmailTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* GmailTool.swift */; };
 		C00000000000000000000001 /* AI Automations.pdf in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AI Automations.pdf */; };
@@ -45,6 +46,7 @@
 		A0000000000000000000001F /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		A00000000000000000000026 /* SAPKnowledgeAgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SAPKnowledgeAgentView.swift; sourceTree = "<group>"; };
 		A00000000000000000000028 /* SecurityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityPolicy.swift; sourceTree = "<group>"; };
+		A0000000000000000000002B /* LegalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalView.swift; sourceTree = "<group>"; };
 		A00000000000000000000023 /* WorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceView.swift; sourceTree = "<group>"; };
 		A00000000000000000000025 /* GmailTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailTool.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AI Automations.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "AI Automations.pdf"; sourceTree = "<group>"; };
@@ -115,6 +117,7 @@
 				A0000000000000000000001F /* ProfileView.swift */,
 				A00000000000000000000026 /* SAPKnowledgeAgentView.swift */,
 				A00000000000000000000028 /* SecurityPolicy.swift */,
+				A0000000000000000000002B /* LegalView.swift */,
 				A00000000000000000000023 /* WorkspaceView.swift */,
 				A00000000000000000000025 /* GmailTool.swift */,
 				C00000000000000000000002 /* AI Automations.pdf */,
@@ -249,6 +252,7 @@
 				A0000000000000000000000C /* ProfileView.swift in Sources */,
 				A00000000000000000000027 /* SAPKnowledgeAgentView.swift in Sources */,
 				A00000000000000000000029 /* SecurityPolicy.swift in Sources */,
+				A0000000000000000000002A /* LegalView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
