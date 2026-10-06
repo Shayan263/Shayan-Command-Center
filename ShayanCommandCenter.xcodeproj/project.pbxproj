@@ -17,7 +17,7 @@
 		A0000000000000000000000D /* CoreSentinelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000021 /* CoreSentinelView.swift */; };
 		A0000000000000000000000B /* InAppBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001E /* InAppBrowserView.swift */; };
 		A0000000000000000000000C /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001F /* ProfileView.swift */; };
-		A00000000000000000000026 /* SAPKnowledgeAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* SAPKnowledgeAgentView.swift */; };
+		A00000000000000000000027 /* SAPKnowledgeAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* SAPKnowledgeAgentView.swift */; };
 		A00000000000000000000022 /* WorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* WorkspaceView.swift */; };
 		A00000000000000000000024 /* GmailTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* GmailTool.swift */; };
 		C00000000000000000000001 /* AI Automations.pdf in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AI Automations.pdf */; };
@@ -244,7 +244,7 @@
 				A00000000000000000000007 /* CoreNavigation.swift in Sources */,
 				A0000000000000000000000B /* InAppBrowserView.swift in Sources */,
 				A0000000000000000000000C /* ProfileView.swift in Sources */,
-				A00000000000000000000026 /* SAPKnowledgeAgentView.swift in Sources */,
+				A00000000000000000000027 /* SAPKnowledgeAgentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
