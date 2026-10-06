@@ -119,6 +119,12 @@ struct SettingsView: View {
                 Text("Protected Notes require your iPhone passcode, Face ID, or Touch ID. Notes are stored in the device Keychain.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+            Section("Legal & Privacy") {
+                NavigationLink("Privacy Policy") { LegalDocumentViewForSettings(title: "Privacy Policy", text: LegalContent.privacyPolicy) }
+                NavigationLink("Terms and Conditions") { LegalDocumentViewForSettings(title: "Terms and Conditions", text: LegalContent.terms) }
+                NavigationLink("Cookie Policy") { LegalDocumentViewForSettings(title: "Cookie Policy", text: LegalContent.cookies) }
+                NavigationLink("Privacy Consent") { PrivacyConsentView() }
+            }
             Section("Privacy & Network") {
                 Label("HTTPS-only external links", systemImage: "lock.shield")
                 Label("No passwords, tokens or credentials hard-coded", systemImage: "checkmark.shield")
@@ -141,6 +147,17 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+
+private struct LegalDocumentViewForSettings: View {
+    let title: String
+    let text: String
+    var body: some View {
+        ScrollView { Text(text).frame(maxWidth: .infinity, alignment: .leading).padding(20) }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
     }
 }
 
