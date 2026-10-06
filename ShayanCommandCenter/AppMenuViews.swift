@@ -41,7 +41,7 @@ private struct QuickActionRow: View {
 
     var body: some View {
         Button {
-            guard url.scheme == "https" else { return }
+            guard SecurityPolicy.isAllowedExternalURL(url) else { return }
             openURL(url)
         } label: {
             Label {
