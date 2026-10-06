@@ -411,7 +411,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-	};
 		B00000000000000000000090 /* Widget Target Proxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A00000000000000000000041;
@@ -424,5 +423,6 @@
 			target = B00000000000000000000040;
 			targetProxy = B00000000000000000000090;
 		};
+	};
 	rootObject = A00000000000000000000041;
 }
