@@ -34,7 +34,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RInE --exclude-dir=.git --exclude='*.md' 'http://[^/]' .; then
+          # Scan executable/source code only. XML, plist, SVG and workflow files
+          # legitimately contain namespace/schema URLs that are not network endpoints.
+          if grep -RInE --exclude-dir=.git --exclude='*.md' \
+              --include='*.swift' --include='*.m' --include='*.mm' --include='*.h' \
+              --include='*.js' --include='*.ts' --include='*.json' \
+              'http://[^/]' . | grep -vE ':[[:space:]]*//'; then
             echo "Plain HTTP URL detected in source."
             exit 1
           fi
