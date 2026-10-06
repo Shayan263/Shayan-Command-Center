@@ -164,6 +164,16 @@ struct HomeView: View {
 
                         }
 
+                        NavigationLink(value: CoreDestination.sapKnowledge) {
+                            ModuleRow(
+                                title: "SAP Knowledge Agent",
+                                subtitle: "Live SAP intelligence for your career",
+                                icon: "brain.head.profile",
+                                badge: "LIVE"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
                         NavigationLink { ResumeBuilderPreviewView() } label: {
                             ModuleRow(
                                 title: "Shayan Resume Builder",
