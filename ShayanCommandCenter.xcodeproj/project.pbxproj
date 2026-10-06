@@ -295,7 +295,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -312,7 +312,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.shayan.commandcentre;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -339,7 +339,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.shayan.commandcentre.widget;
 				PRODUCT_NAME = ShayanCoreWidget;
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -356,7 +356,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.shayan.commandcentre.widget;
 				PRODUCT_NAME = ShayanCoreWidget;
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
