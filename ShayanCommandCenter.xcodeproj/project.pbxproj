@@ -84,7 +84,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXGroup section */
-		A00000000000000000000030 = {
+		A00000000000000000000036 = {
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000031 /* ShayanCommandCenter */,
@@ -203,7 +203,7 @@
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (en, Base);
-			mainGroup = A00000000000000000000030;
+			mainGroup = A00000000000000000000036;
 			packageReferences = (
 				A00000000000000000000035 /* XCRemoteSwiftPackageReference "elevenlabs-swift-sdk" */,
 			);
