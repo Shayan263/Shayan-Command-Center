@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-06T10:00:00+05:30",
+  "generated_at": "2026-10-06T23:31:04.920753+05:30",
   "items": [
     {
       "title": "Joule Studio is SAP's strategic agent-development platform",
@@ -84,18 +84,6 @@
       "source_name": "SAP News",
       "source_url": "https://news.sap.com/2026/07/sap-business-ai-release-highlights-q2-2026/",
       "published_or_updated_at": "2026-07-20"
-    },
-    {
-      "title": "SAP is shifting enterprise development toward context-grounded AI",
-      "category": "SAP Market / Skills",
-      "priority": "WATCH",
-      "summary": "SAP's current platform direction emphasizes AI grounded in business data, processes, semantics and governed enterprise execution rather than generic chatbot usage.",
-      "why_it_matters": "This changes which SAP skills are likely to differentiate developers: clean core, APIs, integration, cloud architecture and AI context/governance.",
-      "shayan_relevance": "Your confirmed ABAP, S/4HANA, RICEFW, OData, CPI, CDS, RAP and BTP experience provides a strong foundation for this transition.",
-      "recommended_action": "Keep ABAP/RAP/CDS and integration fundamentals strong while adding SAP Business AI, Joule Studio and governed AI architecture.",
-      "source_name": "SAP News",
-      "source_url": "https://news.sap.com/2026/05/the-next-era-of-business-ai/",
-      "published_or_updated_at": "2026-05"
     }
   ]
 }
