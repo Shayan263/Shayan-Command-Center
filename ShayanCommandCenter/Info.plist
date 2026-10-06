@@ -22,7 +22,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Shayan Core uses the camera to scan QR codes.</string>	<key>UILaunchScreen</key>
+	<string>Shayan Core uses the camera to scan QR codes.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Shayan Core uses Face ID to protect your private notes.</string>	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
