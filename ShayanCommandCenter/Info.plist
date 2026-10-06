@@ -21,6 +21,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Shayan Core uses the microphone so you can talk to JARVIS.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Shayan Core uses the camera to scan QR codes.</string>
 	<key>NSFaceIDUsageDescription</key>
