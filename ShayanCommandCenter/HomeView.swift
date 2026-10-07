@@ -939,7 +939,48 @@ private final class JarvisAssistantManager: ObservableObject {
                 let session = try await ElevenLabs.startConversation(
                     agentId: Self.agentID,
                     config: ConversationConfig(
-                        conversationOverrides: ConversationOverrides(textOnly: false)
+                        conversationOverrides: ConversationOverrides(textOnly: false),
+                        onAgentReady: { [weak self] in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                self.isConnecting = false
+                                self.statusText = "JARVIS online"
+                            }
+                        },
+                        onDisconnect: { [weak self] reason in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                self.isConnected = false
+                                self.isSpeaking = false
+                                self.isListening = false
+                                self.isConnecting = false
+                                self.statusText = "Session ended"
+                                self.messages = self.messages
+                            }
+                        },
+                        onStartupStateChange: { [weak self] startupState in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                let state = String(describing: startupState)
+                                if state.localizedCaseInsensitiveContains("failed") ||
+                                   state.localizedCaseInsensitiveContains("error") {
+                                    self.statusText = "JARVIS connection failed"
+                                } else if state.localizedCaseInsensitiveContains("connecting") ||
+                                          state.localizedCaseInsensitiveContains("resolving") {
+                                    self.statusText = "Connecting to ElevenLabs…"
+                                }
+                            }
+                        },
+                        onError: { [weak self] error in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                self.isConnected = false
+                                self.isSpeaking = false
+                                self.isListening = false
+                                self.isConnecting = false
+                                self.statusText = Self.userFacingError(for: error)
+                            }
+                        }
                     )
                 )
 
