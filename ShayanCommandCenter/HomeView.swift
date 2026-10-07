@@ -955,7 +955,6 @@ private final class JarvisAssistantManager: ObservableObject {
                                 self.isListening = false
                                 self.isConnecting = false
                                 self.statusText = "Session ended"
-                                self.messages = self.messages
                             }
                         },
                         onStartupStateChange: { [weak self] startupState in
