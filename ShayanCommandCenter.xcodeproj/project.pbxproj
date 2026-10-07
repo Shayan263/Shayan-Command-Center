@@ -167,7 +167,7 @@
 			productName = ShayanCommandCenter;
 			productReference = A00000000000000000000010 /* ShayanCommandCenter.app */;
 			packageProductDependencies = (
-				C00000000000000000000001 /* ElevenLabs */,
+				D00000000000000000000001 /* ElevenLabs */,
 			);
 			productType = "com.apple.product-type.application";
 		};
@@ -203,8 +203,8 @@
 			knownRegions = (en, Base);
 			mainGroup = A00000000000000000000036;
 			packageReferences = (
-				A00000000000000000000035 /* XCRemoteSwiftPackageReference "elevenlabs-swift-sdk" */,
-			);
+				D00000000000000000000002 /* XCRemoteSwiftPackageReference "elevenlabs-swift-sdk" */,
+		);
 			productRefGroup = A00000000000000000000033 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -363,9 +363,22 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		D00000000000000000000001 /* ElevenLabs */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D00000000000000000000002 /* XCRemoteSwiftPackageReference "elevenlabs-swift-sdk" */;
+			productName = ElevenLabs;
+		};
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		D00000000000000000000002 /* XCRemoteSwiftPackageReference "elevenlabs-swift-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/elevenlabs/elevenlabs-swift-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCConfigurationList section */
