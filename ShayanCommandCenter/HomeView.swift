@@ -1,6 +1,8 @@
 import SwiftUI
 import Combine
 import Network
+import AVFoundation
+import Speech
 
 
 private struct BrowserDestination: Identifiable {
@@ -180,6 +182,15 @@ struct CoreHomeView: View {
                                 subtitle: "Build & tailor professional resumes",
                                 icon: "doc.text.magnifyingglass",
                                 badge: "SOON"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        NavigationLink { JarvisTestView() } label: {
+                            ModuleRow(
+                                title: "JARVIS — Voice Test",
+                                subtitle: "On-demand voice assistant test",
+                                icon: "waveform.circle",
+                                badge: "TEST"
                             )
                         }
                         .buttonStyle(.plain)
@@ -675,5 +686,198 @@ private struct ShayanCoreMark: View {
 struct HomeView: View {
     var body: some View {
         CoreHomeView()
+    }
+}
+
+
+struct JarvisTestView: View {
+    @StateObject private var voice = JarvisVoiceController()
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                VStack(spacing: 6) {
+                    Text("JARVIS").font(.caption.weight(.bold)).tracking(2).foregroundStyle(.blue)
+                    Text("Voice Test Mode").font(.largeTitle.bold())
+                    Text(voice.status).font(.subheadline).foregroundStyle(.secondary)
+                }
+
+                ZStack {
+                    Circle().fill(.blue.opacity(0.07)).frame(width: 230, height: 230)
+                    Circle().stroke(.blue.opacity(0.18), lineWidth: 2).frame(width: 190, height: 190)
+                    Circle().fill(LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 145, height: 145)
+                    Image(systemName: voice.isListening ? "waveform" : "mic.fill")
+                        .font(.system(size: 42, weight: .semibold)).foregroundStyle(.white)
+                }
+                .contentShape(Circle())
+                .onTapGesture { Task { await voice.toggle() } }
+
+                Button { Task { await voice.toggle() } } label: {
+                    Label(voice.isListening ? "Stop Listening" : "Start JARVIS Test",
+                          systemImage: voice.isListening ? "stop.fill" : "mic.fill")
+                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+
+                if !voice.transcript.isEmpty {
+                    JarvisBubble(title: "YOU", text: voice.transcript, alignment: .trailing)
+                }
+                if !voice.reply.isEmpty {
+                    JarvisBubble(title: "JARVIS", text: voice.reply, alignment: .leading)
+                }
+
+                Text("JARVIS is completely on-demand. The microphone and audio engine start only after you tap Start, and the session stops when you leave this screen.")
+                    .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center)
+            }
+            .padding(20)
+        }
+        .navigationTitle("JARVIS Test")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { voice.configureCallbacks() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { voice.stop() }
+        }
+        .onDisappear { voice.stop() }
+    }
+}
+
+private struct JarvisBubble: View {
+    let title: String
+    let text: String
+    let alignment: HorizontalAlignment
+    var body: some View {
+        VStack(alignment: alignment, spacing: 5) {
+            Text(title).font(.caption2.weight(.bold)).tracking(1).foregroundStyle(.secondary)
+            Text(text)
+                .font(.body)
+                .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
+                .padding(13).background(Color.primary.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
+    }
+}
+
+@MainActor
+private final class JarvisVoiceController: NSObject, ObservableObject {
+    @Published var isListening = false
+    @Published var status = "Tap Start JARVIS Test when you want to speak"
+    @Published var transcript = ""
+    @Published var reply = ""
+
+    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    private let audioEngine = AVAudioEngine()
+    private let synthesizer = AVSpeechSynthesizer()
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var task: SFSpeechRecognitionTask?
+    private var callbacksConfigured = false
+
+    func configureCallbacks() {
+        guard !callbacksConfigured else { return }
+        callbacksConfigured = true
+        synthesizer.delegate = self
+    }
+
+    func toggle() async {
+        if isListening { stop() } else { await start() }
+    }
+
+    func start() async {
+        guard !isListening else { return }
+        let speech = await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
+        }
+        guard speech == .authorized else { status = "Speech recognition permission is required."; return }
+
+        let microphone = await withCheckedContinuation { continuation in
+            AVAudioSession.sharedInstance().requestRecordPermission { continuation.resume(returning: $0) }
+        }
+        guard microphone else { status = "Microphone permission is required."; return }
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .duckOthers])
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+            transcript = ""
+            status = "Listening…"
+            isListening = true
+
+            let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+            recognitionRequest.shouldReportPartialResults = true
+            request = recognitionRequest
+            task?.cancel()
+            task = recognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+                Task { @MainActor in
+                    guard let self else { return }
+                    if let result {
+                        self.transcript = result.bestTranscription.formattedString
+                        if result.isFinal {
+                            let text = result.bestTranscription.formattedString
+                            self.stop()
+                            self.reply = self.makeReply(for: text)
+                            self.speak(self.reply)
+                        }
+                    }
+                    if error != nil, self.isListening {
+                        self.stop()
+                        self.status = "I couldn't hear that clearly. Tap Start and try again."
+                    }
+                }
+            }
+
+            let input = audioEngine.inputNode
+            input.removeTap(onBus: 0)
+            input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { [weak self] buffer, _ in
+                self?.request?.append(buffer)
+            }
+            audioEngine.prepare()
+            try audioEngine.start()
+        } catch {
+            stop()
+            status = "JARVIS could not start the microphone."
+        }
+    }
+
+    func stop() {
+        if audioEngine.isRunning { audioEngine.stop() }
+        audioEngine.inputNode.removeTap(onBus: 0)
+        request?.endAudio()
+        task?.cancel()
+        request = nil
+        task = nil
+        isListening = false
+        status = "Ready — tap Start JARVIS Test"
+    }
+
+    private func makeReply(for text: String) -> String {
+        let lower = text.lowercased()
+        if lower.contains("hello") || lower.contains("hi") {
+            return "Hello, Shayan. JARVIS test mode is online and ready."
+        }
+        if lower.contains("who are you") {
+            return "I'm JARVIS, the voice test assistant inside Shayan Core."
+        }
+        if lower.contains("status") {
+            return "Shayan Core is running. This JARVIS session is isolated from the main app until you start it."
+        }
+        return "I heard you say: \(text)"
+    }
+
+    private func speak(_ text: String) {
+        synthesizer.stopSpeaking(at: .immediate)
+        status = "JARVIS is replying…"
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = 0.5
+        synthesizer.speak(utterance)
+    }
+}
+
+extension JarvisVoiceController: AVSpeechSynthesizerDelegate {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.status = "Ready — tap Start JARVIS Test"
+        }
     }
 }
