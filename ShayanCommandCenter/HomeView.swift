@@ -2,9 +2,7 @@ import SwiftUI
 import Combine
 import Network
 import AVFoundation
-import Speech
-
-
+import ElevenLabs
 private struct BrowserDestination: Identifiable {
     let id = UUID()
     let url: URL
@@ -695,50 +693,33 @@ struct JarvisTestView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                VStack(spacing: 6) {
-                    Text("JARVIS").font(.caption.weight(.bold)).tracking(2).foregroundStyle(.blue)
-                    Text("Voice Test Mode").font(.largeTitle.bold())
-                    Text(voice.status).font(.subheadline).foregroundStyle(.secondary)
-                }
-
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack(spacing: 24) {
+                Text("JARVIS").font(.caption.weight(.bold)).tracking(3).foregroundStyle(.cyan)
+                Text(voice.status).font(.subheadline).foregroundStyle(.white.opacity(0.72))
                 ZStack {
-                    Circle().fill(.blue.opacity(0.07)).frame(width: 230, height: 230)
-                    Circle().stroke(.blue.opacity(0.18), lineWidth: 2).frame(width: 190, height: 190)
-                    Circle().fill(LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 145, height: 145)
-                    Image(systemName: voice.isListening ? "waveform" : "mic.fill")
+                    Circle().fill(.cyan.opacity(voice.isConnected ? 0.10 : 0.04)).frame(width: 300, height: 300).blur(radius: 8)
+                    Circle().stroke(.cyan.opacity(voice.isConnected ? 0.55 : 0.18), lineWidth: 2).frame(width: 240, height: 240)
+                    Circle().stroke(.blue.opacity(voice.isConnected ? 0.38 : 0.12), lineWidth: 1).frame(width: 205, height: 205)
+                    Circle().fill(RadialGradient(colors: [.cyan, .blue, .blue.opacity(0.35)], center: .center, startRadius: 4, endRadius: 92))
+                        .frame(width: 150, height: 150).shadow(color: .cyan.opacity(0.45), radius: 28)
+                    Image(systemName: voice.isSpeaking ? "waveform" : "waveform.circle")
                         .font(.system(size: 42, weight: .semibold)).foregroundStyle(.white)
                 }
-                .contentShape(Circle())
-                .onTapGesture { Task { await voice.toggle() } }
-
-                Button { Task { await voice.toggle() } } label: {
-                    Label(voice.isListening ? "Stop Listening" : "Start JARVIS Test",
-                          systemImage: voice.isListening ? "stop.fill" : "mic.fill")
-                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                }
-                .buttonStyle(.borderedProminent)
-
-                if !voice.transcript.isEmpty {
-                    JarvisBubble(title: "YOU", text: voice.transcript, alignment: .trailing)
-                }
-                if !voice.reply.isEmpty {
-                    JarvisBubble(title: "JARVIS", text: voice.reply, alignment: .leading)
-                }
-
-                Text("JARVIS is completely on-demand. The microphone and audio engine start only after you tap Start, and the session stops when you leave this screen.")
-                    .font(.caption).foregroundStyle(.tertiary).multilineTextAlignment(.center)
-            }
-            .padding(20)
+                .accessibilityLabel("JARVIS voice interface")
+                if !voice.transcript.isEmpty { JarvisBubble(title: "YOU", text: voice.transcript, alignment: .trailing) }
+                if !voice.reply.isEmpty { JarvisBubble(title: "JARVIS", text: voice.reply, alignment: .leading) }
+                Text("Connected to the existing ElevenLabs JARVIS agent. The JARVIS knowledge base stays on ElevenLabs.")
+                    .font(.caption).foregroundStyle(.white.opacity(0.45)).multilineTextAlignment(.center)
+            }.padding(20)
         }
-        .navigationTitle("JARVIS Test")
-        .navigationBarTitleDisplayMode(.inline)
-        .task { voice.configureCallbacks() }
+        .navigationTitle("JARVIS").navigationBarTitleDisplayMode(.inline)
+        .task { await voice.start() }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { voice.stop() }
+            Task { if phase == .active { await voice.start() } else { await voice.stop() } }
         }
-        .onDisappear { voice.stop() }
+        .onDisappear { Task { await voice.stop() } }
     }
 }
 
@@ -748,136 +729,79 @@ private struct JarvisBubble: View {
     let alignment: HorizontalAlignment
     var body: some View {
         VStack(alignment: alignment, spacing: 5) {
-            Text(title).font(.caption2.weight(.bold)).tracking(1).foregroundStyle(.secondary)
-            Text(text)
-                .font(.body)
+            Text(title).font(.caption2.weight(.bold)).tracking(1).foregroundStyle(.white.opacity(0.5))
+            Text(text).font(.body).foregroundStyle(.white)
                 .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
-                .padding(13).background(Color.primary.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-        .frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
+                .padding(13).background(.white.opacity(0.07)).clipShape(RoundedRectangle(cornerRadius: 16))
+        }.frame(maxWidth: .infinity, alignment: alignment == .trailing ? .trailing : .leading)
     }
 }
 
 @MainActor
-private final class JarvisVoiceController: NSObject, ObservableObject {
-    @Published var isListening = false
-    @Published var status = "Tap Start JARVIS Test when you want to speak"
-    @Published var transcript = ""
-    @Published var reply = ""
+private final class JarvisVoiceController: ObservableObject {
+    private static let agentID = "agent_2101m4976e28f6dvdxxar2cvwemg"
+    @Published private(set) var isConnected = false
+    @Published private(set) var isSpeaking = false
+    @Published private(set) var status = "Connecting to JARVIS…"
+    @Published private(set) var transcript = ""
+    @Published private(set) var reply = ""
 
-    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-    private let audioEngine = AVAudioEngine()
-    private let synthesizer = AVSpeechSynthesizer()
-    private var request: SFSpeechAudioBufferRecognitionRequest?
-    private var task: SFSpeechRecognitionTask?
-    private var callbacksConfigured = false
-
-    func configureCallbacks() {
-        guard !callbacksConfigured else { return }
-        callbacksConfigured = true
-        synthesizer.delegate = self
-    }
-
-    func toggle() async {
-        if isListening { stop() } else { await start() }
-    }
+    private var conversation: Conversation?
+    private var connectTask: Task<Void, Never>?
 
     func start() async {
-        guard !isListening else { return }
-        let speech = await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
-        }
-        guard speech == .authorized else { status = "Speech recognition permission is required."; return }
-
-        let microphone = await withCheckedContinuation { continuation in
-            AVAudioSession.sharedInstance().requestRecordPermission { continuation.resume(returning: $0) }
-        }
-        guard microphone else { status = "Microphone permission is required."; return }
-
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .duckOthers])
-            try session.setActive(true, options: .notifyOthersOnDeactivation)
-            transcript = ""
-            status = "Listening…"
-            isListening = true
-
-            let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-            recognitionRequest.shouldReportPartialResults = true
-            request = recognitionRequest
-            task?.cancel()
-            task = recognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-                Task { @MainActor in
-                    guard let self else { return }
-                    if let result {
-                        self.transcript = result.bestTranscription.formattedString
-                        if result.isFinal {
-                            let text = result.bestTranscription.formattedString
-                            self.stop()
-                            self.reply = self.makeReply(for: text)
-                            self.speak(self.reply)
+        guard conversation == nil, connectTask == nil else { return }
+        status = "Connecting to JARVIS…"
+        let task = Task { [weak self] in
+            do {
+                let conversation = try await ElevenLabs.startConversation(
+                    agentId: Self.agentID,
+                    config: ConversationConfig(
+                        onAgentResponse: { text, _ in
+                            Task { @MainActor [weak self] in
+                                guard let self else { return }
+                                self.reply = text
+                                self.isSpeaking = true
+                                self.status = "JARVIS is speaking…"
+                            }
+                        },
+                        onUserTranscript: { text, _ in
+                            Task { @MainActor [weak self] in
+                                guard let self else { return }
+                                self.transcript = text
+                                self.isSpeaking = false
+                                self.status = "Listening…"
+                            }
                         }
-                    }
-                    if error != nil, self.isListening {
-                        self.stop()
-                        self.status = "I couldn't hear that clearly. Tap Start and try again."
-                    }
-                }
+                    )
+                )
+                try Task.checkCancellation()
+                guard let self else { await conversation.endConversation(); return }
+                guard self.conversation == nil else { await conversation.endConversation(); return }
+                self.conversation = conversation
+                self.isConnected = true
+                self.status = "JARVIS online — speak naturally"
+            } catch is CancellationError {
+            } catch {
+                guard let self else { return }
+                self.isConnected = false
+                self.isSpeaking = false
+                self.status = "JARVIS unavailable — Shayan Core remains stable"
             }
-
-            let input = audioEngine.inputNode
-            input.removeTap(onBus: 0)
-            input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { [weak self] buffer, _ in
-                self?.request?.append(buffer)
-            }
-            audioEngine.prepare()
-            try audioEngine.start()
-        } catch {
-            stop()
-            status = "JARVIS could not start the microphone."
         }
+        connectTask = task
+        await task.value
+        connectTask = nil
     }
 
-    func stop() {
-        if audioEngine.isRunning { audioEngine.stop() }
-        audioEngine.inputNode.removeTap(onBus: 0)
-        request?.endAudio()
-        task?.cancel()
-        request = nil
-        task = nil
-        isListening = false
-        status = "Ready — tap Start JARVIS Test"
-    }
-
-    private func makeReply(for text: String) -> String {
-        let lower = text.lowercased()
-        if lower.contains("hello") || lower.contains("hi") {
-            return "Hello, Shayan. JARVIS test mode is online and ready."
-        }
-        if lower.contains("who are you") {
-            return "I'm JARVIS, the voice test assistant inside Shayan Core."
-        }
-        if lower.contains("status") {
-            return "Shayan Core is running. This JARVIS session is isolated from the main app until you start it."
-        }
-        return "I heard you say: \(text)"
-    }
-
-    private func speak(_ text: String) {
-        synthesizer.stopSpeaking(at: .immediate)
-        status = "JARVIS is replying…"
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = 0.5
-        synthesizer.speak(utterance)
-    }
-}
-
-extension JarvisVoiceController: AVSpeechSynthesizerDelegate {
-    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        Task { @MainActor in
-            self.status = "Ready — tap Start JARVIS Test"
-        }
+    func stop() async {
+        connectTask?.cancel()
+        connectTask = nil
+        let active = conversation
+        conversation = nil
+        isConnected = false
+        isSpeaking = false
+        if let active { await active.endConversation() }
+        status = "JARVIS offline"
     }
 }
