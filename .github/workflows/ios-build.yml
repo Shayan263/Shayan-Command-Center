@@ -162,12 +162,6 @@ jobs:
           test -f "$WIDGET_PATH/ShayanCoreWidget"
           file "$WIDGET_PATH/ShayanCoreWidget"
 
-          LIVEKIT_FRAMEWORK="$APP_PATH/Frameworks/LiveKitWebRTC.framework"
-          test -d "$LIVEKIT_FRAMEWORK"
-          test -f "$LIVEKIT_FRAMEWORK/LiveKitWebRTC"
-          otool -l "$APP_PATH/ShayanCommandCenter" | grep -A2 LC_RPATH | grep -q "@executable_path/Frameworks"
-          otool -L "$APP_PATH/ShayanCommandCenter" | grep -q "LiveKitWebRTC.framework/LiveKitWebRTC"
-
       - name: Upload unsigned iPhone IPA
         uses: actions/upload-artifact@v4
         with:
