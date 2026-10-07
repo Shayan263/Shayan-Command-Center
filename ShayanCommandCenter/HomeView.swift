@@ -179,7 +179,7 @@ struct CoreHomeView: View {
                                 title: "Shayan Resume Builder",
                                 subtitle: "Build & tailor professional resumes",
                                 icon: "doc.text.magnifyingglass",
-                                badge: "SOON"
+                                badge: "READY"
                             )
                         }
                         .buttonStyle(.plain)
@@ -1197,5 +1197,106 @@ private final class JarvisAssistantManager: ObservableObject {
             return "Couldn't connect. Check your network and try again."
         }
         return "Couldn't connect: \(description)"
+    }
+}
+
+
+struct ResumeBuilderPreviewView: View {
+    @State private var useTestExperience = true
+
+    private let liveResumeURL = URL(string: "https://shayan263.github.io/Shayan_Profile/resume.pdf")!
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(spacing: 12) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.blue)
+                        .frame(width: 46, height: 46)
+                        .background(.blue.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 13))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Shayan Resume Builder")
+                            .font(.title2.bold())
+                        Text("Draft workspace • production resume protected")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Current Resume Reference")
+                        .font(.headline)
+                    Text("The live resume remains the reference version. This workspace does not overwrite it.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Link(destination: liveResumeURL) {
+                        Label("Open Current Resume", systemImage: "arrow.up.right.square")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(.blue)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .padding(16)
+                .background(Color.primary.opacity(0.045))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Shayan Test Resume")
+                            .font(.headline)
+                        Spacer()
+                        Text("DRAFT")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.8)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(.orange.opacity(0.14))
+                            .foregroundStyle(.orange)
+                            .clipShape(Capsule())
+                    }
+
+                    Text("Test-only change")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        Text("Experience")
+                        Spacer()
+                        Text(useTestExperience ? "4 years of experience" : "3.7+ years of experience")
+                            .fontWeight(.semibold)
+                    }
+
+                    Toggle("Use 4-year test wording", isOn: $useTestExperience)
+                        .tint(.blue)
+
+                    Text("Only the draft wording changes here. The live/reference resume is not modified.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .background(Color.primary.opacity(0.045))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Next step", systemImage: "square.and.pencil")
+                        .font(.headline)
+                    Text("This app workspace is ready for the resume-builder editing flow. The production resume stays separate from the draft.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .background(.blue.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+            .padding(16)
+        }
+        .navigationTitle("Resume Builder")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
