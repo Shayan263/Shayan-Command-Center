@@ -723,23 +723,38 @@ struct JarvisAssistantView: View {
                         VStack(spacing: 22) {
                             JarvisOrb(
                                 isConnected: manager.isConnected,
+                                isConnecting: manager.isConnecting,
                                 isSpeaking: manager.isSpeaking,
-                                isListening: manager.isListening
+                                isListening: manager.isListening,
+                                onTap: {
+                                    Task {
+                                        if manager.isConnected || manager.isConnecting {
+                                            await manager.stop()
+                                        } else {
+                                            await manager.start()
+                                        }
+                                    }
+                                }
                             )
                             .padding(.top, 26)
 
                             if manager.messages.isEmpty {
-                                VStack(spacing: 8) {
-                                    Text(manager.isConnected ? "I'm listening." : "JARVIS is ready.")
+                                VStack(spacing: 10) {
+                                    Text(manager.isConnecting
+                                         ? "Establishing secure voice session…"
+                                         : (manager.isConnected ? "I'm listening." : "JARVIS is ready."))
                                         .font(.headline)
                                         .foregroundStyle(.white)
+                                        .contentTransition(.opacity)
                                     Text(manager.isConnected
-                                         ? "Speak naturally. JARVIS will listen and respond."
-                                         : "Tap Start JARVIS when you want to use voice.")
+                                         ? "Speak naturally. I’ll listen, think, and respond."
+                                         : "Tap the core or the button below to start.")
                                         .font(.caption)
                                         .foregroundStyle(.white.opacity(0.45))
                                 }
                                 .multilineTextAlignment(.center)
+                                .animation(.easeInOut(duration: 0.25), value: manager.isConnected)
+                                .animation(.easeInOut(duration: 0.25), value: manager.isConnecting)
                             }
 
                             LazyVStack(spacing: 12) {
@@ -808,8 +823,10 @@ struct JarvisAssistantView: View {
 
 private struct JarvisOrb: View {
     let isConnected: Bool
+    let isConnecting: Bool
     let isSpeaking: Bool
     let isListening: Bool
+    let onTap: () -> Void
 
     @State private var pulse = false
     @State private var rotation = 0.0
@@ -817,15 +834,24 @@ private struct JarvisOrb: View {
 
     private var activity: Double {
         if isSpeaking { return 1.0 }
-        if isListening { return 0.78 }
+        if isListening { return 0.82 }
+        if isConnecting { return 0.58 }
         return isConnected ? 0.45 : 0.16
     }
 
     private var coreTitle: String {
         if isSpeaking { return "THINKING / SPEAKING" }
         if isListening { return "LISTENING" }
+        if isConnecting { return "CONNECTING" }
         if isConnected { return "ONLINE" }
         return "STANDBY"
+    }
+
+    private var coreIcon: String {
+        if isSpeaking { return "waveform" }
+        if isListening { return "ear" }
+        if isConnecting { return "antenna.radiowaves.left.and.right" }
+        return isConnected ? "dot.radiowaves.left.and.right" : "power"
     }
 
     var body: some View {
@@ -888,19 +914,27 @@ private struct JarvisOrb: View {
                     .offset(y: -58)
                     .rotationEffect(.degrees(rotation * 1.8))
 
-                Image(systemName: isSpeaking
-                      ? "waveform"
-                      : (isListening ? "ear" : "dot.radiowaves.left.and.right"))
+                Image(systemName: coreIcon)
                     .font(.system(size: 34, weight: .semibold))
                     .foregroundStyle(.white)
-                    .scaleEffect(isSpeaking ? (pulse ? 1.1 : 0.92) : 1)
+                    .scaleEffect(isSpeaking || isConnecting ? (pulse ? 1.1 : 0.92) : 1)
+                    .contentTransition(.symbolEffect(.replace))
             }
             .frame(width: 320, height: 320)
+            .contentShape(Circle())
+            .onTapGesture(perform: onTap)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(isConnected || isConnecting ? "Ends the JARVIS voice session" : "Starts the JARVIS voice session")
 
-            Text(coreTitle)
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .tracking(2.4)
-                .foregroundStyle(.cyan.opacity(0.88))
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(isSpeaking ? Color.cyan : (isListening ? Color.green : (isConnecting ? Color.orange : Color.white.opacity(0.28))))
+                    .frame(width: 6, height: 6)
+                Text(coreTitle)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .tracking(2.2)
+                    .foregroundStyle(.cyan.opacity(0.88))
+            }
         }
         .animation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true), value: pulse)
         .onAppear {
