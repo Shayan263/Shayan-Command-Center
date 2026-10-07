@@ -690,6 +690,7 @@ struct HomeView: View {
 
 
 struct JarvisAssistantView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var manager = JarvisAssistantManager()
 
     var body: some View {
@@ -728,10 +729,12 @@ struct JarvisAssistantView: View {
 
                             if manager.messages.isEmpty {
                                 VStack(spacing: 8) {
-                                    Text(manager.isConnected ? "I'm listening." : "Establishing secure voice link…")
+                                    Text(manager.isConnected ? "I'm listening." : "JARVIS is ready.")
                                         .font(.headline)
                                         .foregroundStyle(.white)
-                                    Text("Speak naturally. No tap-to-talk control is required.")
+                                    Text(manager.isConnected
+                                         ? "Speak naturally. JARVIS will listen and respond."
+                                         : "Tap Start JARVIS when you want to use voice.")
                                         .font(.caption)
                                         .foregroundStyle(.white.opacity(0.45))
                                 }
@@ -757,12 +760,49 @@ struct JarvisAssistantView: View {
                         }
                     }
                 }
+
+                Button {
+                    Task {
+                        if manager.isConnected || manager.isConnecting {
+                            await manager.stop()
+                        } else {
+                            await manager.start()
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 9) {
+                        Image(systemName: manager.isConnecting
+                              ? "hourglass"
+                              : (manager.isConnected ? "stop.fill" : "waveform"))
+                        Text(manager.isConnecting
+                             ? "Connecting…"
+                             : (manager.isConnected ? "End JARVIS" : "Start JARVIS"))
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(manager.isConnected ? Color.red.opacity(0.18) : Color.cyan.opacity(0.18))
+                    .foregroundStyle(manager.isConnected ? .red : .cyan)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke((manager.isConnected ? Color.red : Color.cyan).opacity(0.3), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .disabled(manager.isConnecting)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 14)
             }
         }
         .navigationTitle("JARVIS")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await manager.connectIfNeeded() }
-        .onDisappear { Task { await manager.stop() } }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase != .active else { return }
+            Task { await manager.stop() }
+        }
+        .onDisappear {
+            Task { await manager.stop() }
+        }
     }
 }
 
@@ -781,7 +821,7 @@ private struct JarvisOrb: View {
 
     var body: some View {
         ZStack {
-            ForEach(0..<5, id: \.self) { index in
+            ForEach(0..<3, id: \.self) { index in
                 Circle()
                     .stroke(
                         index.isMultiple(of: 2) ? Color.cyan.opacity(0.24) : Color.blue.opacity(0.20),
@@ -793,7 +833,7 @@ private struct JarvisOrb: View {
                     )
                     .rotationEffect(.degrees(rotation * (index.isMultiple(of: 2) ? 1 : -0.65)))
                     .scaleEffect(1 + (pulse ? 0.025 : 0) * activity)
-                    .blur(radius: index == 4 ? 0.8 : 0)
+                     .blur(radius: index == 2 ? 0.8 : 0)
             }
 
             Circle()
@@ -822,14 +862,10 @@ private struct JarvisOrb: View {
                 .foregroundStyle(.white)
                 .scaleEffect(isSpeaking ? (pulse ? 1.08 : 0.94) : 1)
         }
-        .frame(width: 360, height: 360)
+        .frame(width: 320, height: 320)
+        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
         .onAppear {
-            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
-                rotation = 360
-            }
-            withAnimation(.easeInOut(duration: 1.15).repeatForever(autoreverses: true)) {
-                pulse = true
-            }
+            pulse = true
         }
         .accessibilityLabel("JARVIS interactive voice core")
     }
@@ -873,45 +909,33 @@ private final class JarvisAssistantManager: ObservableObject {
     @Published private(set) var isConnected = false
     @Published private(set) var isSpeaking = false
     @Published private(set) var isListening = false
-    @Published private(set) var statusText = "Connecting…"
+    @Published private(set) var isConnecting = false
+    @Published private(set) var statusText = "Ready"
     @Published private(set) var messages: [JarvisMessage] = []
 
     private var conversation: Conversation?
     private var cancellables = Set<AnyCancellable>()
     private var connectionTask: Task<Void, Never>?
-    private var retryTask: Task<Void, Never>?
-    private var shouldReconnect = true
+    private var lifecycleToken = UUID()
 
-    func connectIfNeeded() async {
-        guard conversation == nil, connectionTask == nil else { return }
-        shouldReconnect = true
-        await connect()
-    }
+    func start() async {
+        guard conversation == nil, connectionTask == nil, !isConnecting else { return }
 
-    func stop() async {
-        shouldReconnect = false
-        retryTask?.cancel()
-        retryTask = nil
-        connectionTask?.cancel()
-        connectionTask = nil
-        cancellables.removeAll()
+        let token = UUID()
+        lifecycleToken = token
+        isConnecting = true
+        statusText = "Requesting microphone access…"
 
-        let active = conversation
-        conversation = nil
-        isConnected = false
-        isSpeaking = false
-        isListening = false
-
-        if let active {
-            await active.endConversation()
+        guard await requestMicrophoneAccess() else {
+            guard lifecycleToken == token else { return }
+            isConnecting = false
+            statusText = "Microphone permission required"
+            return
         }
-        statusText = "Offline"
-    }
 
-    private func connect() async {
-        guard shouldReconnect, conversation == nil, connectionTask == nil else { return }
-
+        guard lifecycleToken == token else { return }
         statusText = "Connecting to ElevenLabs…"
+
         let task = Task { [weak self] in
             guard let self else { return }
             do {
@@ -923,28 +947,73 @@ private final class JarvisAssistantManager: ObservableObject {
                 )
 
                 try Task.checkCancellation()
-                guard self.shouldReconnect, self.conversation == nil else {
+
+                guard self.lifecycleToken == token,
+                      self.conversation == nil else {
                     await session.endConversation()
                     return
                 }
 
                 self.conversation = session
                 self.bind(session)
+                self.isConnecting = false
                 self.statusText = "JARVIS online"
             } catch is CancellationError {
-                return
+                guard self.lifecycleToken == token else { return }
+                self.isConnecting = false
+                self.statusText = "Ready"
             } catch {
+                guard self.lifecycleToken == token else { return }
                 self.isConnected = false
                 self.isSpeaking = false
                 self.isListening = false
-                self.statusText = "Voice link unavailable"
-                self.scheduleReconnect()
+                self.isConnecting = false
+                self.statusText = Self.userFacingError(for: error)
             }
         }
 
         connectionTask = task
         await task.value
+        if lifecycleToken == token {
+            connectionTask = nil
+        }
+    }
+
+    func stop() async {
+        lifecycleToken = UUID()
+        connectionTask?.cancel()
         connectionTask = nil
+        cancellables.removeAll()
+
+        let active = conversation
+        conversation = nil
+        isConnected = false
+        isSpeaking = false
+        isListening = false
+        isConnecting = false
+
+        if let active {
+            await active.endConversation()
+        }
+
+        statusText = "Ready"
+    }
+
+    private func requestMicrophoneAccess() async -> Bool {
+        switch AVAudioSession.sharedInstance().recordPermission {
+        case .granted:
+            return true
+        case .denied:
+            return false
+        case .undetermined:
+            return await withCheckedContinuation { continuation in
+                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
+        @unknown default:
+            return false
+        }
     }
 
     private func bind(_ session: Conversation) {
@@ -954,18 +1023,27 @@ private final class JarvisAssistantManager: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] state in
                 guard let self else { return }
-                let description = String(describing: state)
-                self.isConnected = description.contains("active")
-                if description.contains("connecting") {
-                    self.statusText = "Connecting to ElevenLabs…"
-                } else if description.contains("active") {
-                    self.statusText = "JARVIS online"
-                } else if description.contains("error") || description.contains("ended") {
+                switch state {
+                case .idle:
                     self.isConnected = false
-                    self.statusText = "Reconnecting…"
-                    if self.shouldReconnect {
-                        self.scheduleReconnect()
-                    }
+                    self.statusText = "Ready"
+                case .connecting:
+                    self.isConnected = false
+                    self.statusText = "Connecting to ElevenLabs…"
+                case .active:
+                    self.isConnected = true
+                    self.isConnecting = false
+                    self.statusText = "JARVIS online"
+                case .ended:
+                    self.isConnected = false
+                    self.isSpeaking = false
+                    self.isListening = false
+                    self.statusText = "Session ended"
+                case .error:
+                    self.isConnected = false
+                    self.isSpeaking = false
+                    self.isListening = false
+                    self.statusText = "Voice session error"
                 }
             }
             .store(in: &cancellables)
@@ -993,14 +1071,11 @@ private final class JarvisAssistantManager: ObservableObject {
             .store(in: &cancellables)
     }
 
-    private func scheduleReconnect() {
-        guard shouldReconnect, retryTask == nil, conversation == nil else { return }
-
-        retryTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled, let self else { return }
-            self.retryTask = nil
-            await self.connect()
+    private static func userFacingError(for error: Error) -> String {
+        let description = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        if description.isEmpty {
+            return "Couldn't connect. Check your network and try again."
         }
+        return "Couldn't connect: \(description)"
     }
 }
