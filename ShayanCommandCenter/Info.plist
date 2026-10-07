@@ -21,8 +21,14 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Shayan Core uses speech recognition when you explicitly start the JARVIS voice test.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Shayan Core uses the microphone so you can talk to JARVIS.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Shayan Core uses the camera to scan QR codes.</string>	<key>UILaunchScreen</key>
+	<string>Shayan Core uses the camera to scan QR codes.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Shayan Core uses Face ID to protect your private notes.</string>	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

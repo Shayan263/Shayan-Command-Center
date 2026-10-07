@@ -1,0 +1,54 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main, root]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check for committed secrets and dangerous files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE --exclude-dir=.git --exclude='*.md'             '(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----|gh[pousr]_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})' .; then
+            echo "Potential credential material detected."
+            exit 1
+          fi
+          find . -type f \( -name '*.p12' -o -name '*.mobileprovision' -o -name '*.pem' -o -name '*.key' \) -not -path './.git/*' -print -quit | grep -q . && {
+            echo "Credential/certificate material must not be committed."
+            exit 1
+          } || true
+
+      - name: Check source for insecure HTTP URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Scan executable/source code only. XML, plist, SVG and workflow files
+          # legitimately contain namespace/schema URLs that are not network endpoints.
+          if grep -RInE --exclude-dir=.git --exclude='*.md' \
+              --include='*.swift' --include='*.m' --include='*.mm' --include='*.h' \
+              --include='*.js' --include='*.ts' --include='*.json' \
+              'http://[^/]' . | grep -vE ':[[:space:]]*//'; then
+            echo "Plain HTTP URL detected in source."
+            exit 1
+          fi
+
+      - name: Validate security-sensitive app files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ShayanCommandCenter/AppSecurity.swift
+          test -f ShayanCommandCenter/Info.plist
+          grep -q 'kSecAttrAccessibleWhenUnlockedThisDeviceOnly' ShayanCommandCenter/AppSecurity.swift
+          grep -q 'NSFaceIDUsageDescription' ShayanCommandCenter/Info.plist

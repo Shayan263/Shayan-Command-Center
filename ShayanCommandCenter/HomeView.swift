@@ -1,8 +1,8 @@
 import SwiftUI
 import Combine
 import Network
-
-
+import AVFoundation
+import ElevenLabs
 private struct BrowserDestination: Identifiable {
     let id = UUID()
     let url: URL
@@ -49,7 +49,7 @@ private final class WebsiteStatus: ObservableObject {
     }
 }
 
-struct HomeView: View {
+struct CoreHomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var lastSyncDate: Date?
     @StateObject private var networkMonitor = NetworkMonitor()
@@ -179,7 +179,16 @@ struct HomeView: View {
                                 title: "Shayan Resume Builder",
                                 subtitle: "Build & tailor professional resumes",
                                 icon: "doc.text.magnifyingglass",
-                                badge: "SOON"
+                                badge: "READY"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        NavigationLink { JarvisAssistantView() } label: {
+                            ModuleRow(
+                                title: "JARVIS — Voice Test",
+                                subtitle: "On-demand voice assistant test",
+                                icon: "waveform.circle",
+                                badge: "TEST"
                             )
                         }
                         .buttonStyle(.plain)
@@ -668,5 +677,626 @@ private struct ShayanCoreMark: View {
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
+    }
+}
+
+
+struct HomeView: View {
+    var body: some View {
+        CoreHomeView()
+    }
+}
+
+
+
+struct JarvisAssistantView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var manager = JarvisAssistantManager()
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("JARVIS")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .tracking(4)
+                            .foregroundStyle(.cyan)
+                        Text(manager.statusText)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.55))
+                            .animation(.easeInOut(duration: 0.2), value: manager.statusText)
+                    }
+                    Spacer()
+                    Circle()
+                        .fill(manager.isConnected ? .green : .orange)
+                        .frame(width: 8, height: 8)
+                        .shadow(color: (manager.isConnected ? Color.green : Color.orange).opacity(0.7), radius: 7)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+
+                ScrollViewReader { proxy in
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 22) {
+                            JarvisOrb(
+                                isConnected: manager.isConnected,
+                                isConnecting: manager.isConnecting,
+                                isSpeaking: manager.isSpeaking,
+                                isListening: manager.isListening,
+                                onTap: {
+                                    Task {
+                                        if manager.isConnected || manager.isConnecting {
+                                            await manager.stop()
+                                        } else {
+                                            await manager.start()
+                                        }
+                                    }
+                                }
+                            )
+                            .padding(.top, 26)
+
+                            if manager.messages.isEmpty {
+                                VStack(spacing: 10) {
+                                    Text(manager.isConnecting
+                                         ? "Establishing secure voice session…"
+                                         : (manager.isConnected ? "I'm listening." : "JARVIS is ready."))
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
+                                        .contentTransition(.opacity)
+                                    Text(manager.isConnected
+                                         ? "Speak naturally. I’ll listen, think, and respond."
+                                         : "Tap the core or the button below to start.")
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.45))
+                                }
+                                .multilineTextAlignment(.center)
+                                .animation(.easeInOut(duration: 0.25), value: manager.isConnected)
+                                .animation(.easeInOut(duration: 0.25), value: manager.isConnecting)
+                            }
+
+                            LazyVStack(spacing: 12) {
+                                ForEach(Array(manager.messages.enumerated()), id: \.offset) { _, message in
+                                    JarvisMessageBubble(
+                                        isUser: message.isUser,
+                                        text: message.content
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 18)
+                            .id("messages")
+                        }
+                        .padding(.bottom, 28)
+                    }
+                    .onChange(of: manager.messages.count) { _, _ in
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo("messages", anchor: .bottom)
+                        }
+                    }
+                }
+
+                Button {
+                    Task {
+                        if manager.isConnected || manager.isConnecting {
+                            await manager.stop()
+                        } else {
+                            await manager.start()
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 9) {
+                        Image(systemName: manager.isConnecting
+                              ? "hourglass"
+                              : (manager.isConnected ? "stop.fill" : "waveform"))
+                        Text(manager.isConnecting
+                             ? "Connecting…"
+                             : (manager.isConnected ? "End JARVIS" : "Start JARVIS"))
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(manager.isConnected ? Color.red.opacity(0.18) : Color.cyan.opacity(0.18))
+                    .foregroundStyle(manager.isConnected ? .red : .cyan)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke((manager.isConnected ? Color.red : Color.cyan).opacity(0.3), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 14)
+            }
+        }
+        .navigationTitle("JARVIS")
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: scenePhase) { _, phase in
+            guard phase != .active else { return }
+            Task { await manager.stop() }
+        }
+        .onDisappear {
+            Task { await manager.stop() }
+        }
+    }
+}
+
+private struct JarvisOrb: View {
+    let isConnected: Bool
+    let isConnecting: Bool
+    let isSpeaking: Bool
+    let isListening: Bool
+    let onTap: () -> Void
+
+    @State private var pulse = false
+    @State private var rotation = 0.0
+    @State private var innerRotation = 0.0
+
+    private var activity: Double {
+        if isSpeaking { return 1.0 }
+        if isListening { return 0.82 }
+        if isConnecting { return 0.58 }
+        return isConnected ? 0.45 : 0.16
+    }
+
+    private var coreTitle: String {
+        if isSpeaking { return "THINKING / SPEAKING" }
+        if isListening { return "LISTENING" }
+        if isConnecting { return "CONNECTING" }
+        if isConnected { return "ONLINE" }
+        return "STANDBY"
+    }
+
+    private var coreIcon: String {
+        if isSpeaking { return "waveform" }
+        if isListening { return "ear" }
+        if isConnecting { return "antenna.radiowaves.left.and.right" }
+        return isConnected ? "dot.radiowaves.left.and.right" : "power"
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                ForEach(0..<4, id: \.self) { index in
+                    Circle()
+                        .stroke(
+                            index.isMultiple(of: 2)
+                                ? Color.cyan.opacity(0.28)
+                                : Color.blue.opacity(0.20),
+                            lineWidth: index == 0 ? 1.8 : 1
+                        )
+                        .frame(
+                            width: CGFloat(150 + index * 40),
+                            height: CGFloat(150 + index * 40)
+                        )
+                        .rotationEffect(.degrees(rotation * (index.isMultiple(of: 2) ? 1 : -0.7)))
+                        .scaleEffect(1 + (pulse ? 0.028 : 0) * activity)
+                        .blur(radius: index == 3 ? 1.2 : 0)
+                }
+
+                Circle()
+                    .trim(from: 0.04, to: 0.30)
+                    .stroke(
+                        AngularGradient(
+                            colors: [.clear, .cyan, .white, .clear],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .frame(width: 238, height: 238)
+                    .rotationEffect(.degrees(innerRotation))
+
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                .white.opacity(isSpeaking ? 1.0 : 0.9),
+                                .cyan.opacity(0.92),
+                                .blue.opacity(0.55),
+                                .clear
+                            ],
+                            center: .center,
+                            startRadius: 2,
+                            endRadius: 112
+                        )
+                    )
+                    .frame(width: 176, height: 176)
+                    .shadow(color: .cyan.opacity(0.62 * activity), radius: 36)
+
+                Circle()
+                    .stroke(.white.opacity(0.7), lineWidth: 1)
+                    .frame(width: 140, height: 140)
+
+                Circle()
+                    .fill(.white.opacity(0.92))
+                    .frame(width: 9, height: 9)
+                    .blur(radius: 1)
+                    .offset(y: -58)
+                    .rotationEffect(.degrees(rotation * 1.8))
+
+                Image(systemName: coreIcon)
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .scaleEffect(isSpeaking || isConnecting ? (pulse ? 1.1 : 0.92) : 1)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .frame(width: 320, height: 320)
+            .contentShape(Circle())
+            .onTapGesture(perform: onTap)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(isConnected || isConnecting ? "Ends the JARVIS voice session" : "Starts the JARVIS voice session")
+
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(isSpeaking ? Color.cyan : (isListening ? Color.green : (isConnecting ? Color.orange : Color.white.opacity(0.28))))
+                    .frame(width: 6, height: 6)
+                Text(coreTitle)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .tracking(2.2)
+                    .foregroundStyle(.cyan.opacity(0.88))
+            }
+        }
+        .animation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true), value: pulse)
+        .onAppear {
+            pulse = true
+            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+            withAnimation(.linear(duration: 11).repeatForever(autoreverses: false)) {
+                innerRotation = 360
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("JARVIS interactive voice core, \(coreTitle)")
+    }
+}
+
+private struct JarvisMessageBubble: View {
+    let isUser: Bool
+    let text: String
+
+    var body: some View {
+        HStack {
+            if !isUser { Spacer(minLength: 22) }
+            Text(text)
+                .font(.callout)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .background(
+                    RoundedRectangle(cornerRadius: 17)
+                        .fill(isUser ? Color.blue.opacity(0.28) : Color.white.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 17)
+                        .stroke(isUser ? Color.blue.opacity(0.28) : Color.cyan.opacity(0.14), lineWidth: 1)
+                )
+            if isUser { Spacer(minLength: 22) }
+        }
+    }
+}
+
+private struct JarvisMessage: Identifiable {
+    let id = UUID()
+    let isUser: Bool
+    let content: String
+}
+
+@MainActor
+private final class JarvisAssistantManager: ObservableObject {
+    private static let agentID = "agent_2101m4976e28f6dvdxxar2cvwemg"
+
+    @Published private(set) var isConnected = false
+    @Published private(set) var isSpeaking = false
+    @Published private(set) var isListening = false
+    @Published private(set) var isConnecting = false
+    @Published private(set) var statusText = "Ready"
+    @Published private(set) var messages: [JarvisMessage] = []
+
+    private var conversation: Conversation?
+    private var cancellables = Set<AnyCancellable>()
+    private var connectionTask: Task<Void, Never>?
+    private var lifecycleToken = UUID()
+
+    func start() async {
+        guard conversation == nil, connectionTask == nil, !isConnecting else { return }
+
+        let token = UUID()
+        lifecycleToken = token
+        isConnecting = true
+        statusText = "Requesting microphone access…"
+
+        guard await requestMicrophoneAccess() else {
+            guard lifecycleToken == token else { return }
+            isConnecting = false
+            statusText = "Microphone permission required"
+            return
+        }
+
+        guard lifecycleToken == token else { return }
+        statusText = "Connecting to ElevenLabs…"
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let session = try await ElevenLabs.startConversation(
+                    agentId: Self.agentID,
+                    config: ConversationConfig(
+                        conversationOverrides: ConversationOverrides(textOnly: false),
+                        onAgentReady: { [weak self] in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                self.isConnecting = false
+                                self.statusText = "JARVIS online"
+                            }
+                        },
+                        onDisconnect: { [weak self] reason in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                self.isConnected = false
+                                self.isSpeaking = false
+                                self.isListening = false
+                                self.isConnecting = false
+                                self.statusText = "Session ended"
+                            }
+                        },
+                        onStartupStateChange: { [weak self] startupState in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                let state = String(describing: startupState)
+                                if state.localizedCaseInsensitiveContains("failed") ||
+                                   state.localizedCaseInsensitiveContains("error") {
+                                    self.statusText = "JARVIS connection failed"
+                                } else if state.localizedCaseInsensitiveContains("connecting") ||
+                                          state.localizedCaseInsensitiveContains("resolving") {
+                                    self.statusText = "Connecting to ElevenLabs…"
+                                }
+                            }
+                        },
+                        onError: { [weak self] error in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                self.isConnected = false
+                                self.isSpeaking = false
+                                self.isListening = false
+                                self.isConnecting = false
+                                self.statusText = Self.userFacingError(for: error)
+                            }
+                        }
+                    )
+                )
+
+                try Task.checkCancellation()
+
+                guard self.lifecycleToken == token,
+                      self.conversation == nil else {
+                    await session.endConversation()
+                    return
+                }
+
+                self.conversation = session
+                self.bind(session)
+                self.isConnecting = false
+                self.statusText = "JARVIS online"
+            } catch is CancellationError {
+                guard self.lifecycleToken == token else { return }
+                self.isConnecting = false
+                self.statusText = "Ready"
+            } catch {
+                guard self.lifecycleToken == token else { return }
+                self.isConnected = false
+                self.isSpeaking = false
+                self.isListening = false
+                self.isConnecting = false
+                self.statusText = Self.userFacingError(for: error)
+            }
+        }
+
+        connectionTask = task
+        await task.value
+        if lifecycleToken == token {
+            connectionTask = nil
+        }
+    }
+
+    func stop() async {
+        lifecycleToken = UUID()
+        connectionTask?.cancel()
+        connectionTask = nil
+        cancellables.removeAll()
+
+        let active = conversation
+        conversation = nil
+        isConnected = false
+        isSpeaking = false
+        isListening = false
+        isConnecting = false
+
+        if let active {
+            await active.endConversation()
+        }
+
+        statusText = "Ready"
+    }
+
+    private func requestMicrophoneAccess() async -> Bool {
+        switch AVAudioSession.sharedInstance().recordPermission {
+        case .granted:
+            return true
+        case .denied:
+            return false
+        case .undetermined:
+            return await withCheckedContinuation { continuation in
+                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
+        @unknown default:
+            return false
+        }
+    }
+
+    private func bind(_ session: Conversation) {
+        cancellables.removeAll()
+
+        session.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in
+                guard let self else { return }
+                switch state {
+                case .idle:
+                    self.isConnected = false
+                    self.statusText = "Ready"
+                case .connecting:
+                    self.isConnected = false
+                    self.statusText = "Connecting to ElevenLabs…"
+                case .active:
+                    self.isConnected = true
+                    self.isConnecting = false
+                    self.statusText = "JARVIS online"
+                case .ended:
+                    self.isConnected = false
+                    self.isSpeaking = false
+                    self.isListening = false
+                    self.statusText = "Session ended"
+                case .error:
+                    self.isConnected = false
+                    self.isSpeaking = false
+                    self.isListening = false
+                    self.statusText = "Voice session error"
+                }
+            }
+            .store(in: &cancellables)
+
+        session.$agentState
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in
+                let description = String(describing: state)
+                self?.isSpeaking = description.contains("speaking")
+                self?.isListening = description.contains("listening")
+            }
+            .store(in: &cancellables)
+
+        session.$messages
+            .receive(on: RunLoop.main)
+            .sink { [weak self] incoming in
+                guard let self else { return }
+                self.messages = incoming.map {
+                    JarvisMessage(
+                        isUser: String(describing: $0.role).contains("user"),
+                        content: $0.content
+                    )
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private static func userFacingError(for error: Error) -> String {
+        let description = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        if description.isEmpty {
+            return "Couldn't connect. Check your network and try again."
+        }
+        return "Couldn't connect: \(description)"
+    }
+}
+
+
+struct ResumeBuilderPreviewView: View {
+    @State private var useTestExperience = true
+
+    private let liveResumeURL = URL(string: "https://shayan263.github.io/Shayan_Profile/resume.pdf")!
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(spacing: 12) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.blue)
+                        .frame(width: 46, height: 46)
+                        .background(.blue.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 13))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Shayan Resume Builder")
+                            .font(.title2.bold())
+                        Text("Draft workspace • production resume protected")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Current Resume Reference")
+                        .font(.headline)
+                    Text("The live resume remains the reference version. This workspace does not overwrite it.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Link(destination: liveResumeURL) {
+                        Label("Open Current Resume", systemImage: "arrow.up.right.square")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(.blue)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .padding(16)
+                .background(Color.primary.opacity(0.045))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Shayan Test Resume")
+                            .font(.headline)
+                        Spacer()
+                        Text("DRAFT")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.8)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(.orange.opacity(0.14))
+                            .foregroundStyle(.orange)
+                            .clipShape(Capsule())
+                    }
+
+                    Text("Test-only change")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        Text("Experience")
+                        Spacer()
+                        Text(useTestExperience ? "4 years of experience" : "3.7+ years of experience")
+                            .fontWeight(.semibold)
+                    }
+
+                    Toggle("Use 4-year test wording", isOn: $useTestExperience)
+                        .tint(.blue)
+
+                    Text("Only the draft wording changes here. The live/reference resume is not modified.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .background(Color.primary.opacity(0.045))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Next step", systemImage: "square.and.pencil")
+                        .font(.headline)
+                    Text("This app workspace is ready for the resume-builder editing flow. The production resume stays separate from the draft.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .background(.blue.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+            .padding(16)
+        }
+        .navigationTitle("Resume Builder")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
