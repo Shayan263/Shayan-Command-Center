@@ -167,6 +167,7 @@
 			productName = ShayanCommandCenter;
 			productReference = A00000000000000000000010 /* ShayanCommandCenter.app */;
 			packageProductDependencies = (
+				C00000000000000000000001 /* ElevenLabs */,
 			);
 			productType = "com.apple.product-type.application";
 		};
