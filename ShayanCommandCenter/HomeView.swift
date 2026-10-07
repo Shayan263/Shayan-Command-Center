@@ -789,7 +789,6 @@ struct JarvisAssistantView: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .disabled(manager.isConnecting)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 14)
             }
@@ -810,7 +809,6 @@ private struct JarvisOrb: View {
     let isConnected: Bool
     let isSpeaking: Bool
     let isListening: Bool
-    @State private var rotation = 0.0
     @State private var pulse = false
 
     private var activity: Double {
@@ -831,9 +829,8 @@ private struct JarvisOrb: View {
                         width: CGFloat(170 + index * 38),
                         height: CGFloat(170 + index * 38)
                     )
-                    .rotationEffect(.degrees(rotation * (index.isMultiple(of: 2) ? 1 : -0.65)))
                     .scaleEffect(1 + (pulse ? 0.025 : 0) * activity)
-                     .blur(radius: index == 2 ? 0.8 : 0)
+                    .blur(radius: index == 2 ? 0.8 : 0)
             }
 
             Circle()
