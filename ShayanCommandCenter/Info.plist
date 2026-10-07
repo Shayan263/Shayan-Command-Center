@@ -21,6 +21,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Shayan Core uses speech recognition when you explicitly start the JARVIS voice test.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Shayan Core uses the microphone so you can talk to JARVIS.</string>
 	<key>NSCameraUsageDescription</key>
