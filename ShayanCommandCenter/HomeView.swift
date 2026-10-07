@@ -707,6 +707,7 @@ struct JarvisAssistantView: View {
                         Text(manager.statusText)
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.55))
+                            .animation(.easeInOut(duration: 0.2), value: manager.statusText)
                     }
                     Spacer()
                     Circle()
@@ -809,62 +810,110 @@ private struct JarvisOrb: View {
     let isConnected: Bool
     let isSpeaking: Bool
     let isListening: Bool
+
     @State private var pulse = false
+    @State private var rotation = 0.0
+    @State private var innerRotation = 0.0
 
     private var activity: Double {
         if isSpeaking { return 1.0 }
-        if isListening { return 0.72 }
-        return isConnected ? 0.42 : 0.16
+        if isListening { return 0.78 }
+        return isConnected ? 0.45 : 0.16
+    }
+
+    private var coreTitle: String {
+        if isSpeaking { return "THINKING / SPEAKING" }
+        if isListening { return "LISTENING" }
+        if isConnected { return "ONLINE" }
+        return "STANDBY"
     }
 
     var body: some View {
-        ZStack {
-            ForEach(0..<3, id: \.self) { index in
+        VStack(spacing: 10) {
+            ZStack {
+                ForEach(0..<4, id: \.self) { index in
+                    Circle()
+                        .stroke(
+                            index.isMultiple(of: 2)
+                                ? Color.cyan.opacity(0.28)
+                                : Color.blue.opacity(0.20),
+                            lineWidth: index == 0 ? 1.8 : 1
+                        )
+                        .frame(
+                            width: CGFloat(150 + index * 40),
+                            height: CGFloat(150 + index * 40)
+                        )
+                        .rotationEffect(.degrees(rotation * (index.isMultiple(of: 2) ? 1 : -0.7)))
+                        .scaleEffect(1 + (pulse ? 0.028 : 0) * activity)
+                        .blur(radius: index == 3 ? 1.2 : 0)
+                }
+
                 Circle()
+                    .trim(from: 0.04, to: 0.30)
                     .stroke(
-                        index.isMultiple(of: 2) ? Color.cyan.opacity(0.24) : Color.blue.opacity(0.20),
-                        lineWidth: index == 0 ? 1.8 : 1
+                        AngularGradient(
+                            colors: [.clear, .cyan, .white, .clear],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
                     )
-                    .frame(
-                        width: CGFloat(170 + index * 38),
-                        height: CGFloat(170 + index * 38)
+                    .frame(width: 238, height: 238)
+                    .rotationEffect(.degrees(innerRotation))
+
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                .white.opacity(isSpeaking ? 1.0 : 0.9),
+                                .cyan.opacity(0.92),
+                                .blue.opacity(0.55),
+                                .clear
+                            ],
+                            center: .center,
+                            startRadius: 2,
+                            endRadius: 112
+                        )
                     )
-                    .scaleEffect(1 + (pulse ? 0.025 : 0) * activity)
-                    .blur(radius: index == 2 ? 0.8 : 0)
+                    .frame(width: 176, height: 176)
+                    .shadow(color: .cyan.opacity(0.62 * activity), radius: 36)
+
+                Circle()
+                    .stroke(.white.opacity(0.7), lineWidth: 1)
+                    .frame(width: 140, height: 140)
+
+                Circle()
+                    .fill(.white.opacity(0.92))
+                    .frame(width: 9, height: 9)
+                    .blur(radius: 1)
+                    .offset(y: -58)
+                    .rotationEffect(.degrees(rotation * 1.8))
+
+                Image(systemName: isSpeaking
+                      ? "waveform"
+                      : (isListening ? "ear" : "dot.radiowaves.left.and.right"))
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .scaleEffect(isSpeaking ? (pulse ? 1.1 : 0.92) : 1)
             }
+            .frame(width: 320, height: 320)
 
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            .white.opacity(isSpeaking ? 0.98 : 0.86),
-                            .cyan.opacity(0.88),
-                            .blue.opacity(0.52),
-                            .clear
-                        ],
-                        center: .center,
-                        startRadius: 2,
-                        endRadius: 108
-                    )
-                )
-                .frame(width: 178, height: 178)
-                .shadow(color: .cyan.opacity(0.55 * activity), radius: 34)
-
-            Circle()
-                .stroke(.white.opacity(0.65), lineWidth: 1)
-                .frame(width: 142, height: 142)
-
-            Image(systemName: isSpeaking ? "waveform" : "dot.radiowaves.left.and.right")
-                .font(.system(size: 36, weight: .semibold))
-                .foregroundStyle(.white)
-                .scaleEffect(isSpeaking ? (pulse ? 1.08 : 0.94) : 1)
+            Text(coreTitle)
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .tracking(2.4)
+                .foregroundStyle(.cyan.opacity(0.88))
         }
-        .frame(width: 320, height: 320)
-        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
+        .animation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true), value: pulse)
         .onAppear {
             pulse = true
+            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+            withAnimation(.linear(duration: 11).repeatForever(autoreverses: false)) {
+                innerRotation = 360
+            }
         }
-        .accessibilityLabel("JARVIS interactive voice core")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("JARVIS interactive voice core, \(coreTitle)")
     }
 }
 
